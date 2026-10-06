@@ -1,0 +1,314 @@
+<script setup>
+import { ref, computed, onUnmounted, onMounted } from 'vue'
+import api from '../api'
+import { renderMath } from '../utils/math'
+import { diffColor } from '../utils/ui'
+
+// 阶段: setup | practicing | result
+const phase = ref('setup')
+const mode = ref('kp') // kp | random | wrong
+const selectedKp = ref('')
+const count = ref(5)
+const kpList = ref([])
+
+const questions = ref([])
+const currentIdx = ref(0)
+const answers = ref({}) // recordId -> answer
+const results = ref({}) // recordId -> { correct, correctAnswer, analysis, durationSec }
+
+const timer = ref(0)
+let timerHandle = null
+
+const currentQ = computed(() => questions.value[currentIdx.value] || null)
+const progress = computed(() => ((currentIdx.value + 1) / questions.value.length) * 100)
+
+const allSubmitted = computed(() => {
+  return questions.value.every(q => results.value[q.recordId])
+})
+
+const correctCount = computed(() => {
+  return Object.values(results.value).filter(r => r.correct).length
+})
+
+async function loadKps() {
+  kpList.value = await api.listKnowledgePoints()
+  if (kpList.value.length) selectedKp.value = kpList.value[0].id
+}
+
+async function startPractice() {
+  const payload = { mode: mode.value, count: count.value }
+  if (mode.value === 'kp') payload.kpId = selectedKp.value
+  questions.value = await api.startSession(payload)
+  currentIdx.value = 0
+  answers.value = {}
+  results.value = {}
+  timer.value = 0
+  phase.value = 'practicing'
+  startTimer()
+}
+
+function startTimer() {
+  timerHandle = setInterval(() => { timer.value++ }, 1000)
+}
+function stopTimer() {
+  if (timerHandle) { clearInterval(timerHandle); timerHandle = null }
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+}
+
+function selectOption(optionKey) {
+  answers.value[currentQ.value.recordId] = optionKey
+}
+
+async function submitCurrent() {
+  const q = currentQ.value
+  const answer = answers.value[q.recordId] || ''
+  const res = await api.submitAnswer(q.recordId, { answer })
+  results.value[q.recordId] = res
+}
+
+function nextQuestion() {
+  if (currentIdx.value < questions.value.length - 1) {
+    currentIdx.value++
+  }
+}
+function prevQuestion() {
+  if (currentIdx.value > 0) currentIdx.value--
+}
+
+async function finishSession() {
+  stopTimer()
+  phase.value = 'result'
+}
+
+function reset() {
+  phase.value = 'setup'
+  stopTimer()
+  timer.value = 0
+}
+
+onMounted(() => { loadKps() })
+onUnmounted(() => { stopTimer() })
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- 选题阶段 -->
+    <section v-if="phase === 'setup'" class="bg-white rounded-xl border border-slate-200 p-6">
+      <h2 class="text-lg font-bold mb-4">开始练习</h2>
+
+      <div class="space-y-5">
+        <div>
+          <label class="text-sm font-medium text-slate-700 block mb-2">练习模式</label>
+          <div class="flex gap-3">
+            <button
+              v-for="m in [
+                { v: 'kp', label: '按知识点', desc: '指定知识点抽题' },
+                { v: 'random', label: '随机抽题', desc: '全题库随机' },
+                { v: 'wrong', label: '错题重练', desc: '只练最近答错的题' },
+              ]"
+              :key="m.v"
+              @click="mode = m.v"
+              :class="[
+                'flex-1 p-4 border-2 rounded-xl text-left transition',
+                mode === m.v ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-slate-300'
+              ]"
+            >
+              <div class="font-medium text-slate-800">{{ m.label }}</div>
+              <div class="text-xs text-slate-500 mt-1">{{ m.desc }}</div>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="mode === 'kp'">
+          <label class="text-sm font-medium text-slate-700 block mb-2">选择知识点</label>
+          <select
+            v-model="selectedKp"
+            class="w-full md:w-80 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+          >
+            <option v-for="kp in kpList.filter(k => k.level === 2)" :key="kp.id" :value="kp.id">
+              {{ kp.name }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm font-medium text-slate-700 block mb-2">题目数量：{{ count }} 题</label>
+          <input
+            type="range"
+            v-model.number="count"
+            min="3" max="15" step="1"
+            class="w-full md:w-80 accent-indigo-600"
+          >
+        </div>
+
+        <button
+          @click="startPractice"
+          class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition"
+        >开始练习</button>
+      </div>
+    </section>
+
+    <!-- 答题阶段 -->
+    <section v-else-if="phase === 'practicing' && currentQ" class="space-y-4">
+      <!-- 进度 + 计时 -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-slate-600">
+            第 <strong class="text-indigo-600">{{ currentIdx + 1 }}</strong> / {{ questions.length }} 题
+          </div>
+          <div class="w-48 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-indigo-500 transition-all" :style="{ width: progress + '%' }"></div>
+          </div>
+        </div>
+        <div class="text-lg font-mono text-slate-700 tabular-nums">
+          ⏱ {{ formatTime(timer) }}
+        </div>
+      </div>
+
+      <!-- 题目卡 -->
+      <article class="bg-white rounded-xl border border-slate-200 p-6">
+        <div class="flex items-center gap-2 mb-4 flex-wrap">
+          <span :class="['text-xs px-2 py-0.5 rounded-full font-medium', diffColor(currentQ.difficulty)]">
+            {{ currentQ.difficultyLabel }}
+          </span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+            {{ currentQ.typeLabel }}
+          </span>
+          <span v-for="name in currentQ.kpNames" :key="name" class="text-xs text-slate-500">
+            #{{ name }}
+          </span>
+        </div>
+
+        <div class="text-slate-800 text-lg leading-relaxed mb-6" v-html="renderMath(currentQ.content)"></div>
+
+        <!-- 单选题 -->
+        <div v-if="currentQ.type === 'SINGLE' && !results[currentQ.recordId]" class="space-y-2">
+          <button
+            v-for="opt in currentQ.options"
+            :key="opt"
+            @click="selectOption(opt.charAt(0))"
+            :class="[
+              'w-full text-left px-4 py-3 border rounded-lg transition',
+              answers[currentQ.recordId] === opt.charAt(0)
+                ? 'border-indigo-500 bg-indigo-50'
+                : 'border-slate-200 hover:border-slate-300'
+            ]"
+            v-html="renderMath(opt)"
+          ></button>
+        </div>
+
+        <!-- 填空题 -->
+        <div v-else-if="currentQ.type === 'FILL' && !results[currentQ.recordId]" class="space-y-3">
+          <label class="text-sm text-slate-600">你的答案（可输入 LaTeX）</label>
+          <input
+            v-model="answers[currentQ.recordId]"
+            type="text"
+            placeholder="如：\\frac{1}{2}"
+            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+          >
+        </div>
+
+        <!-- 结果展示 -->
+        <div v-else class="mt-4 space-y-3">
+          <div
+            :class="[
+              'p-4 rounded-lg border',
+              results[currentQ.recordId].correct
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-rose-50 border-rose-200'
+            ]"
+          >
+            <div class="font-semibold mb-1" :class="results[currentQ.recordId].correct ? 'text-emerald-700' : 'text-rose-700'">
+              {{ results[currentQ.recordId].correct ? '✓ 回答正确' : '✗ 回答错误' }}
+            </div>
+            <div class="text-sm text-slate-700">
+              正确答案：<span class="font-mono" v-html="renderMath('$' + results[currentQ.recordId].correctAnswer + '$')"></span>
+            </div>
+            <div class="text-sm text-slate-600 mt-1">用时 {{ results[currentQ.recordId].durationSec }} 秒</div>
+          </div>
+          <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div class="text-sm font-medium text-slate-700 mb-1">解析</div>
+            <div class="text-sm text-slate-600 leading-relaxed" v-html="renderMath(results[currentQ.recordId].analysis)"></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 底部操作 -->
+      <div class="flex items-center justify-between">
+        <button
+          @click="prevQuestion"
+          :disabled="currentIdx === 0"
+          class="px-4 py-2 border border-slate-300 rounded-lg text-sm disabled:opacity-40 hover:bg-slate-50"
+        >上一题</button>
+
+        <div class="flex gap-2">
+          <button
+            v-if="!results[currentQ.recordId]"
+            @click="submitCurrent"
+            :disabled="!answers[currentQ.recordId]"
+            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium transition"
+          >提交答案</button>
+          <button
+            v-else-if="currentIdx < questions.length - 1"
+            @click="nextQuestion"
+            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition"
+          >下一题</button>
+        </div>
+
+        <button
+          @click="finishSession"
+          :disabled="!allSubmitted"
+          class="px-4 py-2 border border-slate-300 rounded-lg text-sm disabled:opacity-40 hover:bg-slate-50"
+        >结束练习</button>
+      </div>
+    </section>
+
+    <!-- 结果阶段 -->
+    <section v-else-if="phase === 'result'" class="space-y-6">
+      <div class="bg-white rounded-xl border border-slate-200 p-6 text-center">
+        <div class="text-sm text-slate-500 mb-2">本次练习成绩</div>
+        <div class="text-5xl font-bold text-indigo-600 mb-4">
+          {{ Math.round(correctCount / questions.length * 100) }}<span class="text-2xl">%</span>
+        </div>
+        <div class="flex justify-center gap-8 text-sm text-slate-600">
+          <div>答对 <strong class="text-emerald-600">{{ correctCount }}</strong> 题</div>
+          <div>答错 <strong class="text-rose-600">{{ questions.length - correctCount }}</strong> 题</div>
+          <div>用时 <strong>{{ formatTime(timer) }}</strong></div>
+        </div>
+        <button
+          @click="reset"
+          class="mt-6 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition"
+        >再来一组</button>
+      </div>
+
+      <!-- 逐题回顾 -->
+      <div class="space-y-3">
+        <h3 class="font-medium text-slate-700">逐题回顾</h3>
+        <article
+          v-for="(q, i) in questions"
+          :key="q.recordId"
+          :class="[
+            'bg-white rounded-xl border p-4',
+            results[q.recordId]?.correct ? 'border-emerald-200' : 'border-rose-200'
+          ]"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-sm font-medium text-slate-500">第 {{ i + 1 }} 题</span>
+            <span
+              :class="[
+                'text-xs px-2 py-0.5 rounded-full font-medium',
+                results[q.recordId]?.correct ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              ]"
+            >{{ results[q.recordId]?.correct ? '正确' : '错误' }}</span>
+          </div>
+          <div class="text-slate-700 text-sm" v-html="renderMath(q.content)"></div>
+        </article>
+      </div>
+    </section>
+  </div>
+</template>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.review.mapper.ReviewScheduleMapper">
+
+  <resultMap id="scheduleMap" type="com.kaoyan.platform.review.entity.ReviewSchedule">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="questionId" column="question_id"/>
+    <result property="stage" column="stage"/>
+    <result property="nextReviewDate" column="next_review_date"/>
+    <result property="status" column="status"/>
+    <result property="completedAt" column="completed_at"/>
+  </resultMap>
+
+  <sql id="cols">id, user_id, question_id, stage, next_review_date, status, completed_at</sql>
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO review_schedule (user_id, question_id, stage, next_review_date, status, completed_at)
+    VALUES (#{userId}, #{questionId}, #{stage}, #{nextReviewDate}, #{status}, #{completedAt})
+  </insert>
+
+  <select id="selectById" resultMap="scheduleMap">
+    SELECT <include refid="cols"/> FROM review_schedule WHERE id = #{id}
+  </select>
+
+  <select id="selectActive" resultMap="scheduleMap">
+    SELECT <include refid="cols"/>
+    FROM review_schedule
+    WHERE user_id = #{userId} AND question_id = #{questionId} AND status = 0
+    ORDER BY id DESC
+    LIMIT 1
+  </select>
+
+  <!-- 条件命中 idx_user_due (user_id, next_review_date, status)：
+       等值列 user_id 在前，范围列 next_review_date 居中，等值列 status 垫底 -->
+  <select id="selectDue" resultMap="scheduleMap">
+    SELECT <include refid="cols"/>
+    FROM review_schedule
+    WHERE user_id = #{userId} AND status = 0 AND next_review_date &lt;= #{today}
+    ORDER BY next_review_date ASC
+  </select>
+
+  <update id="updateProgress" parameterType="com.kaoyan.platform.review.entity.ReviewSchedule">
+    UPDATE review_schedule
+    SET stage = #{stage},
+        next_review_date = #{nextReviewDate},
+        status = #{status},
+        completed_at = #{completedAt}
+    WHERE id = #{id}
+  </update>
+
+  <select id="countActive" resultType="long">
+    SELECT COUNT(*) FROM review_schedule WHERE user_id = #{userId} AND status = 0
+  </select>
+
+  <select id="countDue" resultType="long">
+    SELECT COUNT(*)
+    FROM review_schedule
+    WHERE user_id = #{userId} AND status = 0 AND next_review_date &lt;= #{today}
+  </select>
+
+  <select id="selectStageCounts" resultType="com.kaoyan.platform.review.mapper.ReviewScheduleMapper$StageCount">
+    SELECT stage AS stage, COUNT(*) AS `count`
+    FROM review_schedule
+    WHERE user_id = #{userId} AND status = 0
+    GROUP BY stage
+    ORDER BY stage
+  </select>
+</mapper>

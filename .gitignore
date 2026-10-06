@@ -1,0 +1,18 @@
+# backend
+backend/target/
+*.class
+*.jar
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+
+# ide / os
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# local env
+*.local

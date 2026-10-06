@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.practice.mapper.PracticeRecordMapper">
+
+  <resultMap id="recordMap" type="com.kaoyan.platform.practice.entity.PracticeRecord">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="questionId" column="question_id"/>
+    <result property="isCorrect" column="is_correct"/>
+    <result property="durationSec" column="duration_sec"/>
+    <result property="startedAt" column="started_at"/>
+    <result property="submittedAt" column="submitted_at"/>
+    <result property="practiceDate" column="practice_date"/>
+  </resultMap>
+
+  <sql id="cols">id, user_id, question_id, is_correct, duration_sec, started_at, submitted_at, practice_date</sql>
+
+  <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO practice_record
+      (user_id, question_id, is_correct, duration_sec, started_at, submitted_at, practice_date)
+    VALUES
+    <foreach collection="records" item="r" separator=",">
+      (#{r.userId}, #{r.questionId}, #{r.isCorrect}, #{r.durationSec}, #{r.startedAt}, #{r.submittedAt}, #{r.practiceDate})
+    </foreach>
+  </insert>
+
+  <select id="selectById" resultMap="recordMap">
+    SELECT <include refid="cols"/> FROM practice_record WHERE id = #{id}
+  </select>
+
+  <update id="updateSubmit" parameterType="com.kaoyan.platform.practice.entity.PracticeRecord">
+    UPDATE practice_record
+    SET is_correct = #{isCorrect},
+        duration_sec = #{durationSec},
+        submitted_at = #{submittedAt}
+    WHERE id = #{id}
+  </update>
+
+  <!-- 联合索引 idx_user_date (user_id, practice_date) 完全命中 -->
+  <select id="selectByUserAndDate" resultMap="recordMap">
+    SELECT <include refid="cols"/>
+    FROM practice_record
+    WHERE user_id = #{userId} AND practice_date = #{date}
+    ORDER BY id
+  </select>
+
+  <!-- 掌握度输入：只要已判分的记录（未自评的 NULL 不参与正确率），最新在前 -->
+  <select id="selectRecentByQuestion" resultMap="recordMap">
+    SELECT <include refid="cols"/>
+    FROM practice_record
+    WHERE user_id = #{userId} AND question_id = #{questionId} AND is_correct IS NOT NULL
+    ORDER BY id DESC
+    LIMIT #{limit}
+  </select>
+
+  <!-- ============================================================
+       ★ 你的任务（L4 主战场）：实现 selectDailyAgg
+       ------------------------------------------------------------
+       返回 DailyAgg(totalCount, correctCount, avgDurationSec)，
+       map-underscore-to-camel-case 已开启，字段名对上即可。
+
+       要答对的三件事：
+       1. 总数 = COUNT(*)
+       2. 正确数 = COUNT(is_correct = 1 OR NULL)
+          —— 想一想：为什么不是 SUM(is_correct)？
+             （提示：大题未自评时 is_correct 是 NULL，SUM 遇到 NULL 会怎样？
+              COUNT 只数非 NULL，把"对"转成 1、把"错和未自评"转成 NULL，
+              这样 COUNT 得到的就是纯正确数）
+       3. 平均用时 = AVG(duration_sec)
+          —— 想一想：未提交的记录 duration_sec 是 NULL，AVG 会不会把它算成 0？
+             （提示：AVG 天然忽略 NULL，这正是我们要的——不能把"没做"算成"0 秒做完"）
+
+       空表/当天无记录时返回一行 NULL 值，Service 层已做 null 兜底。
+       ============================================================ -->
+  <!--
+  <select id="selectDailyAgg" resultType="com.kaoyan.platform.practice.mapper.PracticeRecordMapper$DailyAgg">
+    SELECT
+      ... 你的聚合 SQL ...
+    FROM practice_record
+    WHERE user_id = #{userId} AND practice_date = #{date}
+  </select>
+  -->
+</mapper>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.report.mapper.DailyReportMapper">
+
+  <resultMap id="reportMap" type="com.kaoyan.platform.report.entity.DailyReport">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="reportDate" column="report_date"/>
+    <result property="totalCount" column="total_count"/>
+    <result property="correctCount" column="correct_count"/>
+    <result property="avgDurationSec" column="avg_duration_sec"/>
+    <result property="kpMastery" column="kp_mastery"/>
+    <result property="weakPoints" column="weak_points"/>
+    <result property="createdAt" column="created_at"/>
+  </resultMap>
+
+  <sql id="cols">id, user_id, report_date, total_count, correct_count, avg_duration_sec, kp_mastery, weak_points, created_at</sql>
+
+  <!-- 幂等落库：UNIQUE(user_id, report_date) 兜底，并发下不会插出两份 -->
+  <insert id="upsert" parameterType="com.kaoyan.platform.report.entity.DailyReport">
+    INSERT INTO daily_report
+      (user_id, report_date, total_count, correct_count, avg_duration_sec, kp_mastery, weak_points)
+    VALUES
+      (#{userId}, #{reportDate}, #{totalCount}, #{correctCount}, #{avgDurationSec}, #{kpMastery}, #{weakPoints})
+    ON DUPLICATE KEY UPDATE
+      total_count      = VALUES(total_count),
+      correct_count    = VALUES(correct_count),
+      avg_duration_sec = VALUES(avg_duration_sec),
+      kp_mastery       = VALUES(kp_mastery),
+      weak_points      = VALUES(weak_points)
+  </insert>
+
+  <select id="selectByUserAndDate" resultMap="reportMap">
+    SELECT <include refid="cols"/>
+    FROM daily_report
+    WHERE user_id = #{userId} AND report_date = #{date}
+  </select>
+
+  <!-- 趋势图数据源：按日期升序 -->
+  <select id="selectRange" resultMap="reportMap">
+    SELECT <include refid="cols"/>
+    FROM daily_report
+    WHERE user_id = #{userId} AND report_date BETWEEN #{from} AND #{to}
+    ORDER BY report_date
+  </select>
+</mapper>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.question.mapper.KnowledgePointMapper">
+
+  <resultMap id="kpMap" type="com.kaoyan.platform.question.entity.KnowledgePoint">
+    <id property="id" column="id"/>
+    <result property="name" column="name"/>
+    <result property="parentId" column="parent_id"/>
+    <result property="createdAt" column="created_at"/>
+  </resultMap>
+
+  <sql id="cols">id, name, parent_id, created_at</sql>
+
+  <select id="selectAll" resultMap="kpMap">
+    SELECT <include refid="cols"/> FROM knowledge_point ORDER BY id
+  </select>
+
+  <select id="selectById" resultMap="kpMap">
+    SELECT <include refid="cols"/> FROM knowledge_point WHERE id = #{id}
+  </select>
+
+  <select id="selectByName" resultMap="kpMap">
+    SELECT <include refid="cols"/> FROM knowledge_point WHERE name = #{name}
+  </select>
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO knowledge_point (name, parent_id) VALUES (#{name}, #{parentId})
+  </insert>
+
+  <!-- 调用方保证 ids 非空（空集合会拼出 IN () 语法错误） -->
+  <select id="selectByIds" resultMap="kpMap">
+    SELECT <include refid="cols"/> FROM knowledge_point
+    WHERE id IN
+    <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+  </select>
+</mapper>

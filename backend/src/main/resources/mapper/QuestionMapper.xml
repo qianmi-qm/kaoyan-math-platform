@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.question.mapper.QuestionMapper">
+
+  <resultMap id="questionMap" type="com.kaoyan.platform.question.entity.Question">
+    <id property="id" column="id"/>
+    <result property="type" column="type"/>
+    <result property="content" column="content"/>
+    <result property="options" column="options"/>
+    <result property="answer" column="answer"/>
+    <result property="analysis" column="analysis"/>
+    <result property="difficulty" column="difficulty"/>
+    <result property="contentHash" column="content_hash"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <sql id="cols">id, type, content, options, answer, analysis, difficulty, content_hash, created_at, updated_at</sql>
+  <sql id="colsQ">q.id, q.type, q.content, q.options, q.answer, q.analysis, q.difficulty, q.content_hash, q.created_at, q.updated_at</sql>
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO question (type, content, options, answer, analysis, difficulty, content_hash)
+    VALUES (#{type}, #{content}, #{options}, #{answer}, #{analysis}, #{difficulty}, #{contentHash})
+  </insert>
+
+  <insert id="insertQuestionKp">
+    INSERT INTO question_kp (question_id, kp_id) VALUES (#{questionId}, #{kpId})
+  </insert>
+
+  <!-- kpId 为空时不 join，避免无谓关联 -->
+  <select id="selectPage" resultMap="questionMap">
+    SELECT <include refid="colsQ"/>
+    FROM question q
+    <if test="kpId != null">
+      JOIN question_kp qk ON qk.question_id = q.id AND qk.kp_id = #{kpId}
+    </if>
+    ORDER BY q.id DESC
+    LIMIT #{size} OFFSET #{offset}
+  </select>
+
+  <select id="countTotal" resultType="long">
+    SELECT COUNT(*)
+    FROM question q
+    <if test="kpId != null">
+      JOIN question_kp qk ON qk.question_id = q.id AND qk.kp_id = #{kpId}
+    </if>
+  </select>
+
+  <select id="selectById" resultMap="questionMap">
+    SELECT <include refid="cols"/> FROM question WHERE id = #{id}
+  </select>
+
+  <select id="selectByContentHash" resultMap="questionMap">
+    SELECT <include refid="cols"/> FROM question WHERE content_hash = #{contentHash}
+  </select>
+
+  <select id="selectKpIds" resultType="long">
+    SELECT kp_id FROM question_kp WHERE question_id = #{questionId}
+  </select>
+
+  <!-- kpId 为空即"随机抽题"（RANDOM 模式复用本语句）。
+       ORDER BY RAND() 会全表扫描+排序，数据量小时可接受；量大再谈优化（决策日志素材）。
+       userId 为 v1 预留：将来用于排除已练过的题。 -->
+  <select id="selectRandomByKp" resultMap="questionMap">
+    SELECT <include refid="colsQ"/>
+    FROM question q
+    <if test="kpId != null">
+      JOIN question_kp qk ON qk.question_id = q.id AND qk.kp_id = #{kpId}
+    </if>
+    ORDER BY RAND()
+    LIMIT #{n}
+  </select>
+
+  <!-- 错题重练：只取该用户答错过的题（is_correct = 0，未自评的 NULL 不算错题） -->
+  <select id="selectWrongQuestions" resultMap="questionMap">
+    SELECT DISTINCT <include refid="colsQ"/>
+    FROM question q
+    JOIN practice_record pr ON pr.question_id = q.id
+    WHERE pr.user_id = #{userId} AND pr.is_correct = 0
+    ORDER BY q.id DESC
+    LIMIT #{n}
+  </select>
+</mapper>
