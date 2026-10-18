@@ -1,22 +1,27 @@
-# 考研高等数学学习平台（v1 骨架）
+# 考研高等数学学习平台（v1）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台骨架。**所有业务方法都是待实现的 TODO**，配套验收测试已就位——这是"骨架剥离学习法"的起点，不是成品。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。L1～L3（数据模型 / 题库 / 练习）与前端四个页面已实现；**L4 掌握度、L5 艾宾浩斯调度仍留作练习**，对应的 18 个验收测试是红的——这是"骨架剥离学习法"的作业，不是故障。
 
-配套设计文档：《v1 方案与分层学习路线图》（`../kaoyan-math-v1-plan/kaoyan-math-v1-plan.html`）
+> 当前进度（2026-10-18）：L1～L3、L6 前端已完成；L4 / L5 待实现；L7 的 Docker 编排已配置，但本机未装 Docker、尚未实测；v2（Redis 报告缓存、大模型 SSE 讲解）未开始。
 
-## 骨架的初始状态（正确状态）
+配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 
-| 检查项 | 预期 |
-|--------|------|
+## 验收基线（当前）
+
+| 检查项 | 当前结果 |
+|--------|----------|
 | `mvn compile` | BUILD SUCCESS |
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
-| `MasteryCalculatorTest`（10 个用例） | 全红（UnsupportedOperationException）——你的 L4 作业 |
-| `EbbinghausSchedulerTest`（8 个用例） | 全红——你的 L5 作业 |
-| 启动后访问任意业务接口 | 返回 `{"code":5010,"message":"…待实现"}` |
+| `MasteryCalculatorTest`（10 个用例） | 全红（UnsupportedOperationException）——待完成的 L4 作业 |
+| `EbbinghausSchedulerTest`（8 个用例） | 全红——待完成的 L5 作业 |
+| L1～L3 业务接口 | 可用（知识点树 / 题库 / 练习） |
+| L4 / L5 相关接口 | 算法补完前会抛 `UnsupportedOperationException` |
 
 红灯不是缺陷，是完成定义：实现对应模块让灯变绿。
 
 ## 怎么学（六步闭环）
+
+L1～L3 已完成，下表保留作为复习参考；当前待做的是 L4 / L5。
 
 对每一层：读契约（接口 javadoc / 测试）→ 合卷实现 → 跑测试验收 → 与 AI 生成的参考实现对比 → 记决策日志。
 
