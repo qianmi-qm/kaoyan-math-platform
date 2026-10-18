@@ -1,4 +1,8 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG MAVEN_OPTS
 WORKDIR /app
 COPY pom.xml .
 RUN mvn -q dependency:go-offline

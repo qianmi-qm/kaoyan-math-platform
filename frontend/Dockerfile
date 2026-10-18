@@ -1,4 +1,7 @@
 FROM node:20-alpine AS build
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install

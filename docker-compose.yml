@@ -7,7 +7,8 @@ services:
       MYSQL_DATABASE: kaoyan
       TZ: Asia/Shanghai
     ports:
-      - "3306:3306"
+      # 本机 3306 被占用时，可用 MYSQL_PORT=3307 docker compose up 覆盖
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       # 首次启动自动建表 + 初始数据
@@ -19,7 +20,13 @@ services:
       retries: 20
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        MAVEN_OPTS: ${MAVEN_OPTS:-}
     container_name: kaoyan-backend
     depends_on:
       mysql:
@@ -32,7 +39,12 @@ services:
       - "8080:8080"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
     container_name: kaoyan-frontend
     depends_on:
       - backend
