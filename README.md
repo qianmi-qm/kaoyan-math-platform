@@ -1,6 +1,6 @@
 # 考研高等数学学习平台（v1）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6 全部落地，23 个验收测试全绿（4 冒烟 + 10 掌握度 + 8 复习调度 + 1 mapper XML 校验），并用临时 MySQL 8 + 后端 jar + Vite 代理走通了"建知识点 → 录题 / Excel 导入 → 练习判分 → 日报 / 掌握度 → 艾宾浩斯复习"全链路；`docker compose up -d --build` 三容器也实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6 全部落地，25 个验收测试全绿（4 冒烟 + 10 掌握度 + 8 复习调度 + 1 mapper XML + 2 练习服务回归），并用临时 MySQL 8 + 后端 jar + Vite 代理走通了"建知识点 → 录题 / Excel 导入 → 练习判分 → 日报 / 掌握度 → 艾宾浩斯复习"全链路；`docker compose up -d --build` 三容器也实际启动验证通过。
 
 > 当前进度（2026-10-18）：v1 功能完成；本地联调与 Docker Compose 三容器联调均通过（本机 3306 被占用，Compose 用 `MYSQL_PORT=3307`）；压测已有本机基线；下一步是 v2（Redis 报告缓存、大模型 SSE 讲解）。详细记录见 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。
 
@@ -14,12 +14,12 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
-| `mvn test` | 23/23 通过 |
+| `mvn test` | 25/25 通过 |
 | L1～L5 业务接口 | 可用（知识点树 / 题库 / 练习 / 报告 / 复习） |
 | 本地联调（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
 | Docker Compose | 三容器 `up` 验证通过（3307 / 8080 / 5173） |
 
-红灯不是缺陷，是完成定义——现在 23 个测试已经全部转绿。
+红灯不是缺陷，是完成定义——现在 25 个测试已经全部转绿。
 
 ## 验证记录（2026-10-18）
 
@@ -27,7 +27,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6
 
 | 项 | 结果 |
 |----|------|
-| 单元测试 | 23/23 通过 |
+| 单元测试 | 25/25 通过 |
 | L1 知识点树 | 3 个根节点 / 6 个知识点 |
 | L2 题库 | 手动录入 4 题；Excel 导入 3 行 → 2 入库 + 1 重复；重复导入 0 入库 + 3 重复 |
 | L3 练习 | 4 条记录，服务端计时 2～3s，判分与自评正常 |
@@ -63,9 +63,12 @@ L1～L5 已完成，下表保留作为复习参考；v2 是下一阶段。
 docker compose up -d --build
 # 前端 http://localhost:5173
 # 后端 http://localhost:8080  Swagger http://localhost:8080/swagger-ui.html
-# MySQL 默认映射宿主 3306（root/root），首次启动自动执行 schema.sql 建表
+# MySQL 默认映射宿主 3306（root/root）；公网/共享环境建议：
+#   cp .env.example .env && 修改 MYSQL_ROOT_PASSWORD
 # 本机 3306 已被占用时（常见）：
 #   MYSQL_PORT=3307 docker compose up -d --build
+# schema 变更后需要重建数据库卷（会清空数据）：
+#   docker compose down -v && docker compose up -d --build
 
 # 构建需要代理时（可选）：把 HTTP_PROXY / HTTPS_PROXY / MAVEN_OPTS 作为 build args 传入，
 # 其中 Maven 还需要 MAVEN_OPTS 里的 -Dhttps.proxyHost / -Dhttps.proxyPort。
@@ -81,15 +84,15 @@ docker compose up -d --build
 ### 前端 Mock 模式（不启动后端也能体验完整界面）
 
 前端内置 mock 数据层（12 道真题 + 14 天趋势数据）。访问 `http://localhost:5173/?mock=1` 即可开启；
-`?mock=0` 关闭后走真实后端接口。mock 通过自定义 axios adapter 在请求层拦截，接口契约与后端
-`Result{code,message,data}` 完全一致，切换无需改代码。
+`?mock=0` 关闭后走真实后端接口。mock 与真实后端的字段差异统一在 `src/api/normalize.js` 适配，
+页面代码不用改；跑真实接口后可以用 `npm run check:contract` 做一次字段契约检查。
 
 ### 验证命令
 
 ```bash
 cd backend
 mvn compile        # 编译
-mvn test           # 23 个验收测试全绿
+mvn test           # 25 个验收测试全绿
 ```
 
 ## 目录结构
@@ -105,11 +108,12 @@ backend/
   src/main/resources/
     db/schema.sql        # 7 张表 DDL + 初始数据（已实现）
     mapper/*.xml         # MyBatis SQL（L1~L5）
-  src/test/java/         # 验收测试：23 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML）
+  src/test/java/         # 验收测试：25 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习服务）
 frontend/
   src/views/     # 四页面（题库/练习/报告/复习，已实现）
-  src/api/       # 调后端的封装（已实现）
+  src/api/       # 请求封装 + 后端/mock 字段统一适配（normalize.js）
   src/mock/      # 前端 mock 数据层（无后端演示用）
+  scripts/       # contract-check.mjs：真实接口字段契约检查
   src/utils/     # math.js 公式渲染 / ui.js 公共样式映射
 docs/DECISION_LOG.md     # 决策日志（架构决策 + 联调踩坑）
 docs/VERIFICATION.md     # v1 联调与压测记录

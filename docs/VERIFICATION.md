@@ -8,7 +8,7 @@
 
 ```text
 mvn test
-Tests run: 23, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 25, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -50,6 +50,7 @@ BUILD SUCCESS
 - `POST /api/practice/sessions`（RANDOM，4 题）生成 4 条记录。
 - 逐条提交，服务端计时结果：`durationSec` = 2 / 2 / 2 / 3 秒。
 - 判分：3 对 1 错；大题（type=3）带 `selfEval=true` 提交，返回 `correctAnswer` 与 `analysis` 供自评。
+- 大题也支持两步自评：先提交占位答案（`isCorrect=null`），再 `POST /api/practice/records/{id}/self-eval` 传 `{correct}`；答错同样入复习队列。
 
 ## 4. L4 报告
 
@@ -69,7 +70,7 @@ BUILD SUCCESS
 
 - 平均用时 9/4 = 2.25 秒，`ROUND(AVG(...))` 后为 2。
 - 薄弱点为空：洛必达掌握度 0.3 但题量 1 < 3，符合阈值设计。
-- `GET /api/reports/daily/range` 正常返回区间数据；日报首次生成后写 `daily_report` 快照，重复查询不再重算。
+- `GET /api/reports/daily/range` 正常返回区间数据；历史日期首次生成后写 `daily_report` 快照，今天则实时计算（当天新做题不会被旧快照挡住），区间缺数据的日期补 0。
 
 ## 5. L5 艾宾浩斯复习
 
@@ -104,6 +105,8 @@ MYSQL_PORT=3307 docker compose up -d --build
   - 容器内跑通 L2～L5：录题 → 练习判分（服务端计时）→ 日报 3 题 / 对 2 / 正确率 66.7% → 复习 stage 0→1、下次 +2 天
 - 构建注意：BuildKit 的 RUN 容器不继承宿主代理，需通过 compose build args 传入
   `HTTP_PROXY` / `HTTPS_PROXY` / `MAVEN_OPTS`；MySQL 初始化脚本需 `SET NAMES utf8mb4` 才能正确写入中文。
+- 真实模式 UI 用 Chrome headless 渲染 `/bank` `/practice` `/report` `/review`，字段正常、无 `NaN`、无控制台错误；
+  `npm run check:contract` 通过。后端 healthcheck 通过后前端才启动（`depends_on: service_healthy`）。
 
 ## 8. 压测基线
 
@@ -119,11 +122,16 @@ MYSQL_PORT=3307 docker compose up -d --build
 
 ## 9. 联调中发现并修复的问题
 
-1. **XML 注释里的 `--` 导致应用起不来**：`PracticeRecordMapper.xml` 注释中的长横线分隔线违反 XML 规范（注释内容不能含 `--`），MyBatis 解析 mapper 时直接失败。单测全绿但 `java -jar` 启动失败，属于"测试覆盖不到启动"的典型问题。已改为 `====` 分隔线，并补了 `MapperXmlWellFormedTest` 防回归（23 个测试中的 1 个）。
+1. **XML 注释里的 `--` 导致应用起不来**：`PracticeRecordMapper.xml` 注释中的长横线分隔线违反 XML 规范（注释内容不能含 `--`），MyBatis 解析 mapper 时直接失败。单测全绿但 `java -jar` 启动失败，属于"测试覆盖不到启动"的典型问题。已改为 `====` 分隔线，并补了 `MapperXmlWellFormedTest` 防回归（25 个测试中的 1 个）。
 2. **本机 MySQL 凭据与 `application.yml` 不一致**：默认 `root/root` 连不上现有 3306；改用临时实例 + 独立账号 `kaoyan` 联调，不动本机数据库。
 3. **控制台 GBK 编码导致中文 JSON 乱码**：命令行直接传中文会被按 GBK 编码发送，Jackson 报 `Invalid UTF-8 middle byte`；改为 UTF-8 文件 + `curl --data-binary @file`，schema 导入加 `--default-character-set=utf8mb4`。
 4. **Docker 初始化中文乱码**：`schema.sql` 没有显式 `SET NAMES utf8mb4`，MySQL 容器初始化时客户端按默认字符集写入，知识点变成 mojibake。已在 schema 首部加 `SET NAMES utf8mb4`，删除 volume 重新初始化后正常。
 5. **BuildKit 构建无代理**：Docker Desktop 的 daemon 拉镜像能走系统代理，但 `RUN mvn ...` 的构建容器没有代理环境，Maven 下载卡住。用 compose build args 注入 `HTTP_PROXY` / `HTTPS_PROXY`，并给 Maven 传 `MAVEN_OPTS` 的 `-Dhttps.proxyHost/-Dhttps.proxyPort` 后通过。
+6. **未提交记录泄露答案**：`listByDate` 对未提交记录也返回 `correctAnswer`/`analysis`，改按 `submittedAt` 判断；已补 `PracticeServiceImplTest` 回归。
+7. **异常统一 HTTP 200**：改为 `ResponseEntity`，参数错误 400、资源不存在 404、唯一键冲突 409、系统错误 500；前端 axios 错误拦截器统一提示。
+8. **前端 mock 与真实后端两套字段**：新增 `frontend/src/api/normalize.js` 适配层，页面不再直接猜 VO；`npm run check:contract` 对真实接口做字段检查。
+9. **大题提交 NPE**：`Boolean` 三元表达式混用 `boolean` 导致 `selfEval=null` 时拆箱 NPE；改成显式分支后，大题两步自评可用。
+10. **N+1 与复习并发**：题库/练习/报告/复习改为批量查询；`review_schedule` 增加 `active_key` 生成列 + 唯一索引，答错入队改为 `upsert`；提交/复习更新加条件与影响行数判断。
 
 ## 10. 复现步骤
 

@@ -19,3 +19,9 @@
 | 2026-10-18 | MySQL 宿主端口 | compose 用 `${MYSQL_PORT:-3306}`，本机用 3307 | 固定 3306 / 去掉端口映射 | 开发机 3306 常已有 MySQL；可覆盖端口让 compose 在本地也能一键起 |
 | 2026-10-18 | Docker 中文字符集 | schema 首部显式 `SET NAMES utf8mb4` | 依赖客户端默认字符集 | 容器初始化客户端字符集不确定，显式声明才能保证中文初始数据不乱码 |
 | 2026-10-18 | Docker 构建代理 | compose build args 注入 HTTP(S)_PROXY / MAVEN_OPTS | 在 Dockerfile 里硬编码代理 | BuildKit 的 RUN 容器不继承宿主代理；Maven 还需 JVM -D 参数，build args 默认空值不污染镜像 |
+| 2026-10-18 | 前端契约 | `api/normalize.js` 适配层 | 改 mock 或改后端 VO | mock 与真实 VO 字段不同；集中适配，页面不猜字段，并加 contract check |
+| 2026-10-18 | 异常状态码 | `ResponseEntity` + 4xx/5xx | 全部 HTTP 200 + body code | HTTP 语义、监控、前端错误处理都更正确 |
+| 2026-10-18 | 批量查询 | `selectByIds` / 窗口函数取最近 N 次 | 逐题查询 | 报告 4N+1 降到常数级，列表/练习/复习同步 |
+| 2026-10-18 | 复习并发 | `active_key` 生成列 + 唯一索引 + upsert | select-then-insert | 并发答错只保留一条 active，避免重复复习 |
+| 2026-10-18 | 幂等哈希 | SHA-256 替代 MD5 | 保留 MD5 | 判重场景抗碰撞更好，列宽 32→64 |
+| 2026-10-18 | 日报口径 | 今天实时、历史快照、区间逐日补 0 | 首次查看即固化 | 当天新做题不会被旧快照挡住；趋势图不断点 |
