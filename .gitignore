@@ -16,3 +16,4 @@ Thumbs.db
 
 # local env
 *.local
+.env
