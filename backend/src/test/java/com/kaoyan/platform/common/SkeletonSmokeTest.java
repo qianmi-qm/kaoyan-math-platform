@@ -10,6 +10,8 @@ import com.kaoyan.platform.common.result.Result;
 import com.kaoyan.platform.review.domain.EbbinghausScheduler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 /**
  * 骨架冒烟测试（应当前就全绿）：
@@ -29,22 +31,25 @@ class SkeletonSmokeTest {
     }
 
     @Test
-    @DisplayName("业务异常 → 统一错误结构（code 透出、data 为空）")
+    @DisplayName("业务异常 → 统一错误结构 + 对应 HTTP 状态")
     void businessExceptionHandled() {
         GlobalExceptionHandler handler = new GlobalExceptionHandler();
-        Result<Void> r = handler.handleBusiness(
+        ResponseEntity<Result<Void>> response = handler.handleBusiness(
                 new BusinessException(ErrorCode.NOT_IMPLEMENTED, "L2 待实现"));
+        Result<Void> r = response.getBody();
+        assertEquals(HttpStatus.NOT_IMPLEMENTED, response.getStatusCode());
         assertEquals(5010, r.getCode());
         assertEquals("L2 待实现", r.getMessage());
         assertNull(r.getData());
     }
 
     @Test
-    @DisplayName("未知异常 → 系统错误，不向外泄露堆栈")
+    @DisplayName("未知异常 → 500，不向外泄露堆栈")
     void unknownExceptionHandled() {
         GlobalExceptionHandler handler = new GlobalExceptionHandler();
-        Result<Void> r = handler.handleUnknown(new RuntimeException("boom"));
-        assertEquals(9999, r.getCode());
+        ResponseEntity<Result<Void>> response = handler.handleUnknown(new RuntimeException("boom"));
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(9999, response.getBody().getCode());
     }
 
     @Test

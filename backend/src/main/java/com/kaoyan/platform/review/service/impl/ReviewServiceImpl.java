@@ -15,7 +15,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,9 +43,17 @@ public class ReviewServiceImpl implements ReviewService {
     public List<ReviewTaskVO> todayList() {
         Long userId = currentUser.getUserId();
         LocalDate today = LocalDate.now(clock);
-        List<ReviewTaskVO> tasks = new ArrayList<>();
-        for (ReviewSchedule schedule : reviewScheduleMapper.selectDue(userId, today)) {
-            tasks.add(toVO(schedule, today));
+        List<ReviewSchedule> schedules = reviewScheduleMapper.selectDue(userId, today);
+        List<Long> questionIds = schedules.stream().map(ReviewSchedule::getQuestionId).distinct().toList();
+        Map<Long, Question> questionById = new HashMap<>();
+        if (!questionIds.isEmpty()) {
+            for (Question question : questionMapper.selectByIds(questionIds)) {
+                questionById.put(question.getId(), question);
+            }
+        }
+        List<ReviewTaskVO> tasks = new ArrayList<>(schedules.size());
+        for (ReviewSchedule schedule : schedules) {
+            tasks.add(toVO(schedule, today, questionById.get(schedule.getQuestionId())));
         }
         return tasks;
     }
@@ -52,10 +62,16 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public ReviewTaskVO submitResult(Long reviewId, boolean remembered) {
         ReviewSchedule schedule = reviewScheduleMapper.selectById(reviewId);
-        if (schedule == null || schedule.getStatus() != ReviewSchedule.STATUS_ACTIVE) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "复习任务不存在或已完成：" + reviewId);
+        if (schedule == null
+                || !schedule.getUserId().equals(currentUser.getUserId())
+                || schedule.getStatus() != ReviewSchedule.STATUS_ACTIVE) {
+            // 不区分"不存在/不是你的/已完成"，避免泄露别人的任务 id
+            throw new BusinessException(ErrorCode.NOT_FOUND, "复习任务不存在或已完成：" + reviewId);
         }
         LocalDate today = LocalDate.now(clock);
+        if (schedule.getNextReviewDate() != null && schedule.getNextReviewDate().isAfter(today)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "还没到复习日期，不能提前提交");
+        }
         int stage = EbbinghausScheduler.nextStage(schedule.getStage(), remembered);
         schedule.setStage(stage);
         if (EbbinghausScheduler.isFinished(stage)) {
@@ -65,7 +81,10 @@ public class ReviewServiceImpl implements ReviewService {
             // 从"实际复习日"起算，错过几天不跳级（顺延而非补跳）
             schedule.setNextReviewDate(EbbinghausScheduler.nextReviewDate(stage, today));
         }
-        reviewScheduleMapper.updateProgress(schedule);
+        int updated = reviewScheduleMapper.updateProgress(schedule);
+        if (updated == 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "复习任务已被处理，请刷新");
+        }
         return toVO(schedule, today);
     }
 
@@ -73,22 +92,8 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void enqueueIfWrong(Long userId, Long questionId) {
         LocalDate today = LocalDate.now(clock);
-        ReviewSchedule active = reviewScheduleMapper.selectActive(userId, questionId);
-        if (active != null) {
-            active.setStage(0);
-            active.setNextReviewDate(EbbinghausScheduler.firstReviewDate(today));
-            active.setStatus(ReviewSchedule.STATUS_ACTIVE);
-            active.setCompletedAt(null);
-            reviewScheduleMapper.updateProgress(active);
-            return;
-        }
-        ReviewSchedule fresh = new ReviewSchedule();
-        fresh.setUserId(userId);
-        fresh.setQuestionId(questionId);
-        fresh.setStage(0);
-        fresh.setNextReviewDate(EbbinghausScheduler.firstReviewDate(today));
-        fresh.setStatus(ReviewSchedule.STATUS_ACTIVE);
-        reviewScheduleMapper.insert(fresh);
+        // UNIQUE(active_key) + ON DUPLICATE KEY UPDATE：并发答错也只会有一条 active
+        reviewScheduleMapper.upsertActive(userId, questionId, EbbinghausScheduler.firstReviewDate(today));
     }
 
     @Override
@@ -98,6 +103,7 @@ public class ReviewServiceImpl implements ReviewService {
         ReviewStatsVO vo = new ReviewStatsVO();
         vo.setActiveTotal(reviewScheduleMapper.countActive(userId));
         vo.setDueToday(reviewScheduleMapper.countDue(userId, today));
+        vo.setCompletedTotal(reviewScheduleMapper.countCompleted(userId));
         List<ReviewStatsVO.StageCount> byStage = new ArrayList<>();
         for (ReviewScheduleMapper.StageCount stageCount : reviewScheduleMapper.selectStageCounts(userId)) {
             ReviewStatsVO.StageCount item = new ReviewStatsVO.StageCount();
@@ -110,13 +116,16 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     private ReviewTaskVO toVO(ReviewSchedule schedule, LocalDate today) {
+        return toVO(schedule, today, questionMapper.selectById(schedule.getQuestionId()));
+    }
+
+    private ReviewTaskVO toVO(ReviewSchedule schedule, LocalDate today, Question question) {
         ReviewTaskVO vo = new ReviewTaskVO();
         vo.setReviewId(schedule.getId());
         vo.setQuestionId(schedule.getQuestionId());
         vo.setStage(schedule.getStage());
         vo.setNextReviewDate(schedule.getNextReviewDate());
         vo.setOverdue(schedule.getNextReviewDate() != null && schedule.getNextReviewDate().isBefore(today));
-        Question question = questionMapper.selectById(schedule.getQuestionId());
         if (question != null) {
             vo.setType(question.getType());
             vo.setContent(question.getContent());

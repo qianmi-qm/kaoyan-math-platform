@@ -8,6 +8,7 @@ public enum ErrorCode {
     SUCCESS(0, "ok"),
     PARAM_ERROR(4001, "参数错误"),
     NOT_FOUND(5001, "资源不存在"),
+    CONFLICT(4090, "资源冲突"),
     NOT_IMPLEMENTED(5010, "骨架未实现：等待你来完成"),
     SYSTEM_ERROR(9999, "系统内部错误");
 

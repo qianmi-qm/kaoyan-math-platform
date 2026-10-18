@@ -1,6 +1,7 @@
 package com.kaoyan.platform.practice.controller;
 
 import com.kaoyan.platform.common.result.Result;
+import com.kaoyan.platform.practice.dto.SelfEvalDTO;
 import com.kaoyan.platform.practice.dto.StartSessionDTO;
 import com.kaoyan.platform.practice.dto.SubmitAnswerDTO;
 import com.kaoyan.platform.practice.service.PracticeService;
@@ -41,6 +42,13 @@ public class PracticeController {
     public Result<PracticeRecordVO> submit(@PathVariable Long recordId,
                                            @Valid @RequestBody SubmitAnswerDTO dto) {
         return Result.ok(practiceService.submit(recordId, dto));
+    }
+
+    @Operation(summary = "大题自评：提交占位答案后，看到答案再判对错")
+    @PostMapping("/records/{recordId}/self-eval")
+    public Result<PracticeRecordVO> selfEvaluate(@PathVariable Long recordId,
+                                                 @Valid @RequestBody SelfEvalDTO dto) {
+        return Result.ok(practiceService.selfEvaluate(recordId, dto.getCorrect()));
     }
 
     @Operation(summary = "按日查做题记录（复盘）")

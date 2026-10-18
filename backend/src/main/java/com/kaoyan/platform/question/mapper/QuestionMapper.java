@@ -22,6 +22,12 @@ public interface QuestionMapper {
 
     Question selectById(@Param("id") Long id);
 
+    /** 批量查题（调用方保证 ids 非空） */
+    List<Question> selectByIds(@Param("ids") List<Long> ids);
+
+    /** 批量查题目-知识点关联（调用方保证 questionIds 非空） */
+    List<QuestionKpRow> selectKpRowsByQuestionIds(@Param("questionIds") List<Long> questionIds);
+
     /** 导入幂等：按 content_hash 查重 */
     Question selectByContentHash(@Param("contentHash") String contentHash);
 

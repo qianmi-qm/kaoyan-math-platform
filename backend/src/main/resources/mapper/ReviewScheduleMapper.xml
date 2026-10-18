@@ -19,6 +19,16 @@
     VALUES (#{userId}, #{questionId}, #{stage}, #{nextReviewDate}, #{status}, #{completedAt})
   </insert>
 
+  <insert id="upsertActive">
+    INSERT INTO review_schedule (user_id, question_id, stage, next_review_date, status, completed_at)
+    VALUES (#{userId}, #{questionId}, 0, #{nextReviewDate}, 0, NULL) AS incoming
+    ON DUPLICATE KEY UPDATE
+      stage = 0,
+      next_review_date = incoming.next_review_date,
+      status = 0,
+      completed_at = NULL
+  </insert>
+
   <select id="selectById" resultMap="scheduleMap">
     SELECT <include refid="cols"/> FROM review_schedule WHERE id = #{id}
   </select>
@@ -46,7 +56,7 @@
         next_review_date = #{nextReviewDate},
         status = #{status},
         completed_at = #{completedAt}
-    WHERE id = #{id}
+    WHERE id = #{id} AND status = 0
   </update>
 
   <select id="countActive" resultType="long">
@@ -57,6 +67,10 @@
     SELECT COUNT(*)
     FROM review_schedule
     WHERE user_id = #{userId} AND status = 0 AND next_review_date &lt;= #{today}
+  </select>
+
+  <select id="countCompleted" resultType="long">
+    SELECT COUNT(*) FROM review_schedule WHERE user_id = #{userId} AND status = 1
   </select>
 
   <select id="selectStageCounts" resultType="com.kaoyan.platform.review.mapper.ReviewScheduleMapper$StageCount">

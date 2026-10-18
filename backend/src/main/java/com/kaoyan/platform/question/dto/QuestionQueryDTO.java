@@ -10,7 +10,7 @@ public class QuestionQueryDTO {
     /** 可选：按知识点过滤 */
     private Long kpId;
 
-    @Min(1)
+    @Min(1) @Max(100000)
     private int page = 1;
 
     @Min(1) @Max(100)

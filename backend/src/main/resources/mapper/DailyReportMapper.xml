@@ -21,13 +21,13 @@
     INSERT INTO daily_report
       (user_id, report_date, total_count, correct_count, avg_duration_sec, kp_mastery, weak_points)
     VALUES
-      (#{userId}, #{reportDate}, #{totalCount}, #{correctCount}, #{avgDurationSec}, #{kpMastery}, #{weakPoints})
+      (#{userId}, #{reportDate}, #{totalCount}, #{correctCount}, #{avgDurationSec}, #{kpMastery}, #{weakPoints}) AS incoming
     ON DUPLICATE KEY UPDATE
-      total_count      = VALUES(total_count),
-      correct_count    = VALUES(correct_count),
-      avg_duration_sec = VALUES(avg_duration_sec),
-      kp_mastery       = VALUES(kp_mastery),
-      weak_points      = VALUES(weak_points)
+      total_count      = incoming.total_count,
+      correct_count    = incoming.correct_count,
+      avg_duration_sec = incoming.avg_duration_sec,
+      kp_mastery       = incoming.kp_mastery,
+      weak_points      = incoming.weak_points
   </insert>
 
   <select id="selectByUserAndDate" resultMap="reportMap">

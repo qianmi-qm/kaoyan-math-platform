@@ -33,7 +33,13 @@
     SET is_correct = #{isCorrect},
         duration_sec = #{durationSec},
         submitted_at = #{submittedAt}
-    WHERE id = #{id}
+    WHERE id = #{id} AND submitted_at IS NULL
+  </update>
+
+  <update id="updateSelfEval">
+    UPDATE practice_record
+    SET is_correct = #{isCorrect}
+    WHERE id = #{id} AND submitted_at IS NOT NULL AND is_correct IS NULL
   </update>
 
   <!-- 联合索引 idx_user_date (user_id, practice_date) 完全命中 -->
@@ -51,6 +57,22 @@
     WHERE user_id = #{userId} AND question_id = #{questionId} AND is_correct IS NOT NULL
     ORDER BY id DESC
     LIMIT #{limit}
+  </select>
+
+  <!-- 批量版掌握度输入：一次查出多道题各自最近 N 次（MySQL 8 窗口函数） -->
+  <select id="selectRecentByQuestionIds" resultMap="recordMap">
+    SELECT id, user_id, question_id, is_correct, duration_sec, started_at, submitted_at, practice_date
+    FROM (
+      SELECT <include refid="cols"/>,
+             ROW_NUMBER() OVER (PARTITION BY question_id ORDER BY id DESC) AS rn
+      FROM practice_record
+      WHERE user_id = #{userId}
+        AND question_id IN
+        <foreach collection="questionIds" item="qid" open="(" separator="," close=")">#{qid}</foreach>
+        AND is_correct IS NOT NULL
+    ) t
+    WHERE rn &lt;= #{limit}
+    ORDER BY question_id, id DESC
   </select>
 
   <!-- ============================================================

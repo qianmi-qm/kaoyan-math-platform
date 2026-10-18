@@ -26,5 +26,11 @@ public interface PracticeService {
      */
     PracticeRecordVO submit(Long recordId, SubmitAnswerDTO dto);
 
+    /**
+     * 大题两步自评：先提交占位答案（selfEval 为空），看到正确答案/解析后再自评。
+     * 只允许 type=3 且 is_correct 仍为空的记录；答错自动入复习队列。
+     */
+    PracticeRecordVO selfEvaluate(Long recordId, boolean correct);
+
     List<PracticeRecordVO> listByDate(LocalDate date);
 }

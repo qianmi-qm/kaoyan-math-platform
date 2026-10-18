@@ -3,6 +3,8 @@ package com.kaoyan.platform.question.service.impl;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaoyan.platform.common.exception.BusinessException;
 import com.kaoyan.platform.common.result.ErrorCode;
 import com.kaoyan.platform.common.result.PageVO;
@@ -12,6 +14,7 @@ import com.kaoyan.platform.question.dto.QuestionQueryDTO;
 import com.kaoyan.platform.question.entity.KnowledgePoint;
 import com.kaoyan.platform.question.entity.Question;
 import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
+import com.kaoyan.platform.question.mapper.QuestionKpRow;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
 import com.kaoyan.platform.question.service.QuestionService;
 import com.kaoyan.platform.question.vo.ImportResultVO;
@@ -22,10 +25,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,10 +42,14 @@ public class QuestionServiceImpl implements QuestionService {
 
     private final QuestionMapper questionMapper;
     private final KnowledgePointMapper knowledgePointMapper;
+    private final ObjectMapper objectMapper;
 
-    public QuestionServiceImpl(QuestionMapper questionMapper, KnowledgePointMapper knowledgePointMapper) {
+    public QuestionServiceImpl(QuestionMapper questionMapper,
+                               KnowledgePointMapper knowledgePointMapper,
+                               ObjectMapper objectMapper) {
         this.questionMapper = questionMapper;
         this.knowledgePointMapper = knowledgePointMapper;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -55,8 +66,13 @@ public class QuestionServiceImpl implements QuestionService {
         question.setAnswer(dto.getAnswer());
         question.setAnalysis(dto.getAnalysis());
         question.setDifficulty(dto.getDifficulty());
-        question.setContentHash(md5(dto.getContent().trim()));
-        questionMapper.insert(question);
+        question.setContentHash(sha256(dto.getContent().trim()));
+        validateOptions(dto.getOptions());
+        try {
+            questionMapper.insert(question);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.CONFLICT, "题目已存在（题干重复）");
+        }
         for (Long kpId : kpIds) {
             questionMapper.insertQuestionKp(question.getId(), kpId);
         }
@@ -109,8 +125,9 @@ public class QuestionServiceImpl implements QuestionService {
         if (row.getDifficulty() == null || row.getDifficulty() < 1 || row.getDifficulty() > 3) {
             throw new IllegalArgumentException("难度必须为 1/2/3");
         }
+        validateOptions(row.getOptions());
 
-        String hash = md5(row.getContent().trim());
+        String hash = sha256(row.getContent().trim());
         if (!seenHashes.add(hash) || questionMapper.selectByContentHash(hash) != null) {
             result.setDuplicated(result.getDuplicated() + 1);
             return;
@@ -155,9 +172,27 @@ public class QuestionServiceImpl implements QuestionService {
         int offset = (query.getPage() - 1) * query.getSize();
         List<Question> rows = questionMapper.selectPage(query.getKpId(), offset, query.getSize());
         long total = questionMapper.countTotal(query.getKpId());
+
+        List<Long> ids = rows.stream().map(Question::getId).toList();
+        Map<Long, List<Long>> kpIdsByQuestion = new HashMap<>();
+        Map<Long, KnowledgePoint> kpById = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (QuestionKpRow row : questionMapper.selectKpRowsByQuestionIds(ids)) {
+                kpIdsByQuestion.computeIfAbsent(row.getQuestionId(), key -> new ArrayList<>())
+                        .add(row.getKpId());
+            }
+            Set<Long> allKpIds = new HashSet<>();
+            kpIdsByQuestion.values().forEach(allKpIds::addAll);
+            if (!allKpIds.isEmpty()) {
+                for (KnowledgePoint kp : knowledgePointMapper.selectByIds(new ArrayList<>(allKpIds))) {
+                    kpById.put(kp.getId(), kp);
+                }
+            }
+        }
+
         List<QuestionVO> list = new ArrayList<>(rows.size());
         for (Question row : rows) {
-            list.add(toVO(row, false));
+            list.add(toVO(row, false, kpIdsByQuestion.getOrDefault(row.getId(), List.of()), kpById));
         }
         return new PageVO<>(list, total, query.getPage(), query.getSize());
     }
@@ -172,21 +207,33 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     /**
-     * 逐题补知识点：一页 20 条会多出 40 次查询（典型 N+1）。
-     * v1 页大小上限 100、数据量小可接受；量大时改为按 questionIds 批量查一次再在内存分组。
-     * 列表场景不带 answer/analysis（防刷题），详情场景带。
+     * 单题补知识点（详情场景）；列表场景走 page() 里的批量查询，避免 N+1。
      */
     private QuestionVO toVO(Question question, boolean withAnswer) {
+        List<Long> kpIds = questionMapper.selectKpIds(question.getId());
+        Map<Long, KnowledgePoint> kpById = new HashMap<>();
+        if (!kpIds.isEmpty()) {
+            for (KnowledgePoint kp : knowledgePointMapper.selectByIds(kpIds)) {
+                kpById.put(kp.getId(), kp);
+            }
+        }
+        return toVO(question, withAnswer, kpIds, kpById);
+    }
+
+    private QuestionVO toVO(Question question, boolean withAnswer,
+                            List<Long> kpIds, Map<Long, KnowledgePoint> kpById) {
         QuestionVO vo = new QuestionVO();
         vo.setId(question.getId());
         vo.setType(question.getType());
         vo.setContent(question.getContent());
         vo.setOptions(question.getOptions());
         vo.setDifficulty(question.getDifficulty());
-        List<Long> kpIds = questionMapper.selectKpIds(question.getId());
         vo.setKpIds(kpIds);
-        vo.setKpNames(kpIds.isEmpty() ? List.of() : knowledgePointMapper.selectByIds(kpIds).stream()
-                .map(KnowledgePoint::getName).toList());
+        vo.setKpNames(kpIds.stream()
+                .map(kpById::get)
+                .filter(Objects::nonNull)
+                .map(KnowledgePoint::getName)
+                .toList());
         if (withAnswer) {
             vo.setAnswer(question.getAnswer());
             vo.setAnalysis(question.getAnalysis());
@@ -194,17 +241,31 @@ public class QuestionServiceImpl implements QuestionService {
         return vo;
     }
 
-    private static String md5(String text) {
+    private void validateOptions(String options) {
+        if (options == null || options.isBlank()) {
+            return;
+        }
         try {
-            byte[] digest = MessageDigest.getInstance("MD5").digest(text.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(32);
+            var node = objectMapper.readTree(options);
+            if (!node.isArray()) {
+                throw new IllegalArgumentException("选项必须是 JSON 数组");
+            }
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("选项不是合法 JSON");
+        }
+    }
+
+    private static String sha256(String text) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(64);
             for (byte b : digest) {
                 sb.append(Character.forDigit((b >> 4) & 0xF, 16));
                 sb.append(Character.forDigit(b & 0xF, 16));
             }
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("MD5 算法不可用", e);
+            throw new IllegalStateException("SHA-256 算法不可用", e);
         }
     }
 }

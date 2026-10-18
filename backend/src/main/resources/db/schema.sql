@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS question (
   answer       TEXT NOT NULL COMMENT '正确答案',
   analysis     TEXT NULL COMMENT '解析，LaTeX 原文',
   difficulty   TINYINT NOT NULL DEFAULT 2 COMMENT '1易 2中 3难',
-  content_hash CHAR(32) NOT NULL UNIQUE COMMENT 'MD5(题干)，批量导入幂等去重',
+  content_hash CHAR(64) NOT NULL UNIQUE COMMENT 'SHA-256(题干)，批量导入幂等去重',
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB COMMENT '题目';
@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS practice_record (
   submitted_at  DATETIME NULL,
   practice_date DATE NOT NULL,
   KEY idx_user_date (user_id, practice_date),
+  KEY idx_user_correct (user_id, is_correct, question_id),
   KEY idx_question (question_id),
   CONSTRAINT fk_pr_question FOREIGN KEY (question_id) REFERENCES question (id)
 ) ENGINE = InnoDB COMMENT '做题记录（细粒度留痕，只增不删）';
@@ -66,7 +67,11 @@ CREATE TABLE IF NOT EXISTS review_schedule (
   next_review_date DATE NOT NULL,
   status           TINYINT NOT NULL DEFAULT 0 COMMENT '0待复习 1已完成',
   completed_at     DATETIME NULL,
-  KEY idx_user_due (user_id, next_review_date, status),
+  active_key       VARCHAR(64) GENERATED ALWAYS AS (
+                     CASE WHEN status = 0 THEN CONCAT(user_id, ':', question_id) ELSE NULL END
+                   ) STORED COMMENT 'active 唯一键；完成后为 NULL，允许重新入队',
+  KEY idx_user_due (user_id, status, next_review_date),
+  UNIQUE KEY uk_active (active_key),
   KEY idx_question (question_id)
 ) ENGINE = InnoDB COMMENT '艾宾浩斯复习队列（周期 1/2/4/7/15 天）';
 

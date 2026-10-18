@@ -58,7 +58,11 @@ public class KnowledgePointServiceImpl implements KnowledgePointService {
         KnowledgePoint kp = new KnowledgePoint();
         kp.setName(trimmed);
         kp.setParentId(parentId);
-        knowledgePointMapper.insert(kp);
+        try {
+            knowledgePointMapper.insert(kp);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.CONFLICT, "知识点已存在：" + trimmed);
+        }
         return toVO(kp);
     }
 

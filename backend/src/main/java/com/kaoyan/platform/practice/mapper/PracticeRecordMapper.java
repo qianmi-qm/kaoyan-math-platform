@@ -16,6 +16,9 @@ public interface PracticeRecordMapper {
 
     int updateSubmit(PracticeRecord record);
 
+    /** 两步自评：只更新还没自评（is_correct IS NULL）且已提交的记录 */
+    int updateSelfEval(@Param("id") Long id, @Param("isCorrect") boolean isCorrect);
+
     /** 按用户+日期查记录（联合索引 idx_user_date 完全命中） */
     List<PracticeRecord> selectByUserAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
 
@@ -23,6 +26,11 @@ public interface PracticeRecordMapper {
     List<PracticeRecord> selectRecentByQuestion(@Param("userId") Long userId,
                                                 @Param("questionId") Long questionId,
                                                 @Param("limit") int limit);
+
+    /** 批量版：每道题各取最近 N 次（调用方保证 questionIds 非空） */
+    List<PracticeRecord> selectRecentByQuestionIds(@Param("userId") Long userId,
+                                                   @Param("questionIds") List<Long> questionIds,
+                                                   @Param("limit") int limit);
 
     /** 每日汇总：总题数 / 正确数 / 平均用时（L4 聚合 SQL 主战场） */
     DailyAgg selectDailyAgg(@Param("userId") Long userId, @Param("date") LocalDate date);

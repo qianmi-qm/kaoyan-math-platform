@@ -13,7 +13,7 @@ public class Question {
     private String answer;
     private String analysis;       // 解析 LaTeX 原文
     private Integer difficulty;    // 1易 2中 3难
-    private String contentHash;    // MD5(题干)，导入幂等
+    private String contentHash;    // SHA-256(题干)，导入幂等
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
