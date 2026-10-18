@@ -5,6 +5,8 @@
 
 CREATE DATABASE IF NOT EXISTS kaoyan DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE kaoyan;
+-- 保证客户端连接按 utf8mb4 解释脚本里的中文（Docker 初始化 / 本地 source 都需要）
+SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `user` (
   id         BIGINT PRIMARY KEY AUTO_INCREMENT,
