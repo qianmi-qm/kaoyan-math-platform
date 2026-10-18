@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts/core'
 import { LineChart, RadarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
@@ -8,18 +8,35 @@ import api from '../api'
 
 echarts.use([LineChart, RadarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
-const reportDate = ref(new Date().toISOString().slice(0, 10))
+function localDate(value = new Date()) {
+  const offset = value.getTimezoneOffset()
+  return new Date(value.getTime() - offset * 60000).toISOString().slice(0, 10)
+}
+
+const reportDate = ref(localDate())
 const report = ref(null)
 const trend = ref([])
 const loading = ref(false)
+const error = ref('')
+
+const rateDelta = computed(() => {
+  if (!report.value || !trend.value.length) return null
+  const index = trend.value.findIndex(item => item.date === report.value.date)
+  if (index <= 0) return null
+  return report.value.correctRate - trend.value[index - 1].correctRate
+})
 
 let trendChart = null
 let radarChart = null
 
 async function loadReport() {
   loading.value = true
+  error.value = ''
   try {
     report.value = await api.dailyReport(reportDate.value)
+  } catch (e) {
+    error.value = e.message
+    report.value = null
   } finally {
     loading.value = false
   }
@@ -29,11 +46,12 @@ async function loadTrend() {
   const today = new Date()
   const from = new Date(today)
   from.setDate(today.getDate() - 13)
-  const data = await api.reportRange(
-    from.toISOString().slice(0, 10),
-    today.toISOString().slice(0, 10)
-  )
-  trend.value = data
+  try {
+    trend.value = await api.reportRange(localDate(from), localDate(today))
+  } catch (e) {
+    error.value = e.message
+    trend.value = []
+  }
 }
 
 function renderTrendChart() {
@@ -138,6 +156,9 @@ watch(reportDate, async () => {
 
 <template>
   <div class="space-y-6">
+    <div v-if="error" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm">
+      {{ error }}
+    </div>
     <!-- 顶部日期选择 + 概览卡片 -->
     <section class="bg-white rounded-xl border border-slate-200 p-6">
       <div class="flex items-center justify-between mb-4">
@@ -159,7 +180,9 @@ watch(reportDate, async () => {
         <div class="p-4 bg-emerald-50 rounded-xl">
           <div class="text-xs text-emerald-600 mb-1">正确率</div>
           <div class="text-2xl font-bold text-emerald-700">{{ Math.round(report.correctRate * 100) }}%</div>
-          <div class="text-xs text-emerald-500 mt-1">较昨日 +2.3%</div>
+          <div class="text-xs text-emerald-500 mt-1">
+            {{ rateDelta === null ? '暂无对比' : `较上一日 ${rateDelta >= 0 ? '+' : ''}${(rateDelta * 100).toFixed(1)}%` }}
+          </div>
         </div>
         <div class="p-4 bg-amber-50 rounded-xl">
           <div class="text-xs text-amber-600 mb-1">平均用时</div>

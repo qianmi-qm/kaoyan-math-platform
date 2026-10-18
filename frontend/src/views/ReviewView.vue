@@ -6,7 +6,9 @@ import { renderMath } from '../utils/math'
 const todayList = ref([])
 const stats = ref(null)
 const loading = ref(false)
+const error = ref('')
 const finishedIds = ref(new Set())
+const pendingIds = ref(new Set())
 
 const remaining = computed(() => todayList.value.filter(t => !finishedIds.value.has(t.id)))
 const completed = computed(() => todayList.value.filter(t => finishedIds.value.has(t.id)))
@@ -15,29 +17,37 @@ const INTERVALS = [1, 2, 4, 7, 15]
 
 async function loadReviews() {
   loading.value = true
+  error.value = ''
   try {
     todayList.value = await api.todayReviews()
+  } catch (e) {
+    error.value = e.message
+    todayList.value = []
   } finally {
     loading.value = false
   }
 }
 
 async function loadStats() {
-  stats.value = await api.reviewStats()
+  try {
+    stats.value = await api.reviewStats()
+  } catch (e) {
+    error.value = e.message
+  }
 }
 
 async function handleRemember(item, remembered) {
-  await api.submitReview(item.id, remembered)
-  finishedIds.value.add(item.id)
-  // 更新 stats 概览数字
-  if (stats.value) {
-    stats.value.dueToday = Math.max(0, stats.value.dueToday - 1)
-    stats.value.activeTotal = remembered && item.stage >= 4
-      ? stats.value.activeTotal - 1
-      : stats.value.activeTotal
-    stats.value.completedTotal = remembered && item.stage >= 4
-      ? stats.value.completedTotal + 1
-      : stats.value.completedTotal
+  if (pendingIds.value.has(item.id)) return
+  pendingIds.value.add(item.id)
+  error.value = ''
+  try {
+    await api.submitReview(item.id, remembered)
+    finishedIds.value.add(item.id)
+    await loadStats()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    pendingIds.value.delete(item.id)
   }
 }
 
@@ -54,6 +64,9 @@ onMounted(() => { loadReviews(); loadStats() })
 
 <template>
   <div class="space-y-6">
+    <div v-if="error" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm">
+      {{ error }}
+    </div>
     <!-- 顶部统计 -->
     <section class="bg-white rounded-xl border border-slate-200 p-6">
       <div class="flex items-center justify-between mb-4">
@@ -144,11 +157,13 @@ onMounted(() => { loadReviews(); loadStats() })
           <div class="flex gap-3">
             <button
               @click="handleRemember(item, false)"
-              class="flex-1 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-sm font-medium transition"
+              :disabled="pendingIds.has(item.id)"
+              class="flex-1 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-sm font-medium transition disabled:opacity-40"
             >忘了 · 重置</button>
             <button
               @click="handleRemember(item, true)"
-              class="flex-1 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition"
+              :disabled="pendingIds.has(item.id)"
+              class="flex-1 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition disabled:opacity-40"
             >记住了 · 推进</button>
           </div>
         </article>

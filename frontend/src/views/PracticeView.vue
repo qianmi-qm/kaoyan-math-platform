@@ -15,6 +15,8 @@ const questions = ref([])
 const currentIdx = ref(0)
 const answers = ref({}) // recordId -> answer
 const results = ref({}) // recordId -> { correct, correctAnswer, analysis, durationSec }
+const error = ref('')
+const submitting = ref(false)
 
 const timer = ref(0)
 let timerHandle = null
@@ -23,7 +25,7 @@ const currentQ = computed(() => questions.value[currentIdx.value] || null)
 const progress = computed(() => ((currentIdx.value + 1) / questions.value.length) * 100)
 
 const allSubmitted = computed(() => {
-  return questions.value.every(q => results.value[q.recordId])
+  return questions.value.every(q => results.value[q.recordId] && results.value[q.recordId].isCorrect !== null)
 })
 
 const correctCount = computed(() => {
@@ -31,20 +33,33 @@ const correctCount = computed(() => {
 })
 
 async function loadKps() {
-  kpList.value = await api.listKnowledgePoints()
-  if (kpList.value.length) selectedKp.value = kpList.value[0].id
+  try {
+    kpList.value = await api.listKnowledgePoints()
+    const leaf = kpList.value.find(k => k.level === 2) || kpList.value[0]
+    if (leaf) selectedKp.value = leaf.id
+  } catch (e) {
+    error.value = e.message
+  }
 }
 
 async function startPractice() {
-  const payload = { mode: mode.value, count: count.value }
-  if (mode.value === 'kp') payload.kpId = selectedKp.value
-  questions.value = await api.startSession(payload)
-  currentIdx.value = 0
-  answers.value = {}
-  results.value = {}
-  timer.value = 0
-  phase.value = 'practicing'
-  startTimer()
+  error.value = ''
+  submitting.value = true
+  try {
+    const payload = { mode: mode.value, count: count.value }
+    if (mode.value === 'kp') payload.kpId = selectedKp.value
+    questions.value = await api.startSession(payload)
+    currentIdx.value = 0
+    answers.value = {}
+    results.value = {}
+    timer.value = 0
+    phase.value = 'practicing'
+    startTimer()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    submitting.value = false
+  }
 }
 
 function startTimer() {
@@ -67,8 +82,28 @@ function selectOption(optionKey) {
 async function submitCurrent() {
   const q = currentQ.value
   const answer = answers.value[q.recordId] || ''
-  const res = await api.submitAnswer(q.recordId, { answer })
-  results.value[q.recordId] = res
+  error.value = ''
+  submitting.value = true
+  try {
+    const res = await api.submitAnswer(q.recordId, { answer })
+    results.value[q.recordId] = res
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function selfEvaluate(recordId, correct) {
+  error.value = ''
+  submitting.value = true
+  try {
+    results.value[recordId] = await api.selfEvaluate(recordId, correct)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    submitting.value = false
+  }
 }
 
 function nextQuestion() {
@@ -97,6 +132,9 @@ onUnmounted(() => { stopTimer() })
 
 <template>
   <div class="space-y-6">
+    <div v-if="error" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm">
+      {{ error }}
+    </div>
     <!-- 选题阶段 -->
     <section v-if="phase === 'setup'" class="bg-white rounded-xl border border-slate-200 p-6">
       <h2 class="text-lg font-bold mb-4">开始练习</h2>
@@ -213,24 +251,54 @@ onUnmounted(() => { stopTimer() })
           >
         </div>
 
+        <!-- 大题：先提交占位答案，再对照答案自评 -->
+        <div v-else-if="currentQ.type === 'SUBJECTIVE' && !results[currentQ.recordId]" class="space-y-3">
+          <label class="text-sm text-slate-600">你的解答（可输入 LaTeX）</label>
+          <textarea
+            v-model="answers[currentQ.recordId]"
+            rows="5"
+            placeholder="写出你的推导过程或最终答案"
+            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+          ></textarea>
+          <p class="text-xs text-slate-500">提交后对照答案自评，答错会自动进入复习队列。</p>
+        </div>
+
         <!-- 结果展示 -->
         <div v-else class="mt-4 space-y-3">
           <div
+            v-if="results[currentQ.recordId].isCorrect !== null"
             :class="[
               'p-4 rounded-lg border',
-              results[currentQ.recordId].correct
+              results[currentQ.recordId].isCorrect
                 ? 'bg-emerald-50 border-emerald-200'
                 : 'bg-rose-50 border-rose-200'
             ]"
           >
-            <div class="font-semibold mb-1" :class="results[currentQ.recordId].correct ? 'text-emerald-700' : 'text-rose-700'">
-              {{ results[currentQ.recordId].correct ? '✓ 回答正确' : '✗ 回答错误' }}
+            <div class="font-semibold mb-1" :class="results[currentQ.recordId].isCorrect ? 'text-emerald-700' : 'text-rose-700'">
+              {{ results[currentQ.recordId].isCorrect ? '✓ 回答正确' : '✗ 回答错误' }}
             </div>
             <div class="text-sm text-slate-700">
               正确答案：<span class="font-mono" v-html="renderMath('$' + results[currentQ.recordId].correctAnswer + '$')"></span>
             </div>
             <div class="text-sm text-slate-600 mt-1">用时 {{ results[currentQ.recordId].durationSec }} 秒</div>
           </div>
+
+          <div v-else class="p-4 rounded-lg border border-indigo-200 bg-indigo-50">
+            <div class="font-semibold text-indigo-700 mb-1">已提交，请对照答案自评</div>
+            <div class="flex gap-3 mt-3">
+              <button
+                @click="selfEvaluate(currentQ.recordId, false)"
+                :disabled="submitting"
+                class="flex-1 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-sm font-medium disabled:opacity-40"
+              >我答错了</button>
+              <button
+                @click="selfEvaluate(currentQ.recordId, true)"
+                :disabled="submitting"
+                class="flex-1 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium disabled:opacity-40"
+              >我答对了</button>
+            </div>
+          </div>
+
           <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
             <div class="text-sm font-medium text-slate-700 mb-1">解析</div>
             <div class="text-sm text-slate-600 leading-relaxed" v-html="renderMath(results[currentQ.recordId].analysis)"></div>

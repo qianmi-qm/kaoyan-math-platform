@@ -13,16 +13,22 @@ const questions = ref([])
 const loading = ref(false)
 const importFile = ref(null)
 const importResult = ref(null)
+const error = ref('')
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
 
 async function loadKps() {
-  kpList.value = await api.listKnowledgePoints()
+  try {
+    kpList.value = await api.listKnowledgePoints()
+  } catch (e) {
+    error.value = e.message
+  }
 }
 
 async function loadQuestions(resetPage = false) {
   if (resetPage) page.value = 1
   loading.value = true
+  error.value = ''
   try {
     const data = await api.listQuestions({
       kpId: selectedKp.value || undefined,
@@ -31,6 +37,10 @@ async function loadQuestions(resetPage = false) {
     })
     total.value = data.total
     questions.value = data.records
+  } catch (e) {
+    error.value = e.message
+    questions.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -41,9 +51,15 @@ function nextPage() { if (page.value < totalPages.value) { page.value++; loadQue
 
 async function handleImport() {
   if (!importFile.value) return
+  error.value = ''
   const form = new FormData()
   form.append('file', importFile.value)
-  importResult.value = await api.importExcel(form)
+  try {
+    importResult.value = await api.importExcel(form)
+    await loadQuestions(true)
+  } catch (e) {
+    error.value = e.message
+  }
 }
 
 onMounted(() => { loadKps(); loadQuestions() })
@@ -51,6 +67,9 @@ onMounted(() => { loadKps(); loadQuestions() })
 
 <template>
   <div class="space-y-6">
+    <div v-if="error" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm">
+      {{ error }}
+    </div>
     <!-- 顶部操作区 -->
     <section class="bg-white rounded-xl border border-slate-200 p-6">
       <div class="flex items-center justify-between mb-4">
