@@ -20,6 +20,10 @@ const submitting = ref(false)
 
 const timer = ref(0)
 let timerHandle = null
+const aiText = ref('')
+const aiError = ref('')
+const aiLoading = ref(false)
+let aiAbort = null
 
 const currentQ = computed(() => questions.value[currentIdx.value] || null)
 const progress = computed(() => ((currentIdx.value + 1) / questions.value.length) * 100)
@@ -53,6 +57,7 @@ async function startPractice() {
     answers.value = {}
     results.value = {}
     timer.value = 0
+    resetAi()
     phase.value = 'practicing'
     startTimer()
   } catch (e) {
@@ -109,10 +114,86 @@ async function selfEvaluate(recordId, correct) {
 function nextQuestion() {
   if (currentIdx.value < questions.value.length - 1) {
     currentIdx.value++
+    resetAi()
   }
 }
 function prevQuestion() {
-  if (currentIdx.value > 0) currentIdx.value--
+  if (currentIdx.value > 0) {
+    currentIdx.value--
+    resetAi()
+  }
+}
+
+function resetAi() {
+  aiText.value = ''
+  aiError.value = ''
+  aiLoading.value = false
+  if (aiAbort) {
+    aiAbort.abort()
+    aiAbort = null
+  }
+}
+
+async function explainWithAi(recordId) {
+  resetAi()
+  aiLoading.value = true
+  aiAbort = new AbortController()
+  try {
+    const response = await fetch(`/api/ai/explain/${recordId}`, {
+      method: 'POST',
+      signal: aiAbort.signal,
+    })
+    if (!response.ok || !response.body) {
+      throw new Error(`讲解请求失败：${response.status}`)
+    }
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    let dataLines = []
+    let eventName = ''
+
+    const flushEvent = () => {
+      const text = dataLines.join('\n')
+      dataLines = []
+      if (!text) {
+        eventName = ''
+        return false
+      }
+      if (eventName === 'error') {
+        aiError.value = text
+      } else if (text !== '[DONE]') {
+        aiText.value += text
+      }
+      eventName = ''
+      return text === '[DONE]'
+    }
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let newline = buffer.indexOf('\n')
+      while (newline >= 0) {
+        const line = buffer.slice(0, newline).replace(/\r$/, '')
+        buffer = buffer.slice(newline + 1)
+        if (line === '') {
+          if (flushEvent()) return
+        } else if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim()
+        } else if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).replace(/^ /, ''))
+        }
+        newline = buffer.indexOf('\n')
+      }
+    }
+    if (dataLines.length) flushEvent()
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      aiError.value = e.message
+    }
+  } finally {
+    aiLoading.value = false
+  }
 }
 
 async function finishSession() {
@@ -124,10 +205,14 @@ function reset() {
   phase.value = 'setup'
   stopTimer()
   timer.value = 0
+  resetAi()
 }
 
 onMounted(() => { loadKps() })
-onUnmounted(() => { stopTimer() })
+onUnmounted(() => {
+  stopTimer()
+  if (aiAbort) aiAbort.abort()
+})
 </script>
 
 <template>
@@ -302,6 +387,21 @@ onUnmounted(() => { stopTimer() })
           <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
             <div class="text-sm font-medium text-slate-700 mb-1">解析</div>
             <div class="text-sm text-slate-600 leading-relaxed" v-html="renderMath(results[currentQ.recordId].analysis)"></div>
+          </div>
+
+          <div v-if="results[currentQ.recordId].isCorrect === false" class="flex justify-end">
+            <button
+              @click="explainWithAi(currentQ.recordId)"
+              :disabled="aiLoading"
+              class="px-4 py-2 bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 rounded-lg text-sm font-medium transition disabled:opacity-40"
+            >{{ aiLoading ? 'AI 讲解生成中…' : 'AI 讲解' }}</button>
+          </div>
+
+          <div v-if="aiLoading || aiText || aiError" class="p-4 bg-violet-50/60 rounded-lg border border-violet-200">
+            <div class="text-sm font-medium text-violet-700 mb-2">AI 讲解</div>
+            <div v-if="aiError" class="text-sm text-rose-600">{{ aiError }}</div>
+            <div v-if="aiText" class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{{ aiText }}</div>
+            <div v-else-if="aiLoading" class="text-sm text-slate-500">正在生成…</div>
           </div>
         </div>
       </article>
