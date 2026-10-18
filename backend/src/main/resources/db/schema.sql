@@ -93,14 +93,15 @@ CREATE TABLE IF NOT EXISTS ai_explanation (
   id                 BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id            BIGINT NOT NULL,
   question_id        BIGINT NOT NULL,
+  answer_hash        CHAR(64) NOT NULL COMMENT 'SHA-256(标准化用户答案)，不同错答分别讲解',
   practice_record_id BIGINT NULL COMMENT '首次生成讲解的记录',
   content            MEDIUMTEXT NOT NULL COMMENT 'LLM 生成的讲解全文',
   model              VARCHAR(64) NULL COMMENT '生成所用模型名',
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_user_question (user_id, question_id),
+  UNIQUE KEY uk_user_question_answer (user_id, question_id, answer_hash),
   KEY idx_question (question_id)
-) ENGINE = InnoDB COMMENT 'AI 错题讲解（同一用户同一题只生成一次，控制 token）';
+) ENGINE = InnoDB COMMENT 'AI 错题讲解（同一用户同一题同一答案复用，控制 token）';
 
 -- ---------- 初始数据 ----------
 INSERT IGNORE INTO `user` (id, username) VALUES (1, 'learner');

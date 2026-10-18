@@ -14,9 +14,13 @@ import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -95,7 +99,9 @@ public class AiExplanationService {
                 return;
             }
 
-            AiExplanation cached = aiExplanationMapper.selectByUserAndQuestion(userId, question.getId());
+            String answerHash = hashAnswer(record.getSubmittedAnswer());
+            AiExplanation cached = aiExplanationMapper.selectByUserQuestionAndAnswer(
+                    userId, question.getId(), answerHash);
             if (cached != null && StringUtils.hasText(cached.getContent())) {
                 streamText(cached.getContent(), emitter);
                 return;
@@ -108,7 +114,7 @@ public class AiExplanationService {
                 streamText(fallback, emitter);
                 return;
             }
-            streamFromLlm(buildPrompt(record, question), fallback, record, question, emitter);
+            streamFromLlm(buildPrompt(record, question), fallback, record, question, answerHash, emitter);
         } catch (Exception e) {
             log.error("AI 讲解失败", e);
             sendError(emitter, "AI 讲解暂时不可用");
@@ -116,7 +122,7 @@ public class AiExplanationService {
     }
 
     private void streamFromLlm(String prompt, String fallback, PracticeRecord record,
-                               Question question, SseEmitter emitter) {
+                               Question question, String answerHash, SseEmitter emitter) {
         StringBuilder answer = new StringBuilder();
         AtomicBoolean finished = new AtomicBoolean(false);
         String model = properties.getModel();
@@ -146,7 +152,7 @@ public class AiExplanationService {
                         // 有的 OpenAI 兼容实现发完 [DONE] 不立刻断连接，主动收尾
                         if (finished.compareAndSet(false, true)) {
                             if (answer.length() > 0) {
-                                save(record, question, answer.toString(), model);
+                                save(record, question, answerHash, answer.toString(), model);
                                 finish(emitter);
                             } else {
                                 streamText(fallback, emitter);
@@ -161,6 +167,9 @@ public class AiExplanationService {
                     answer.append(delta);
                     send(emitter, delta);
                 }, error -> {
+                    if (!finished.compareAndSet(false, true)) {
+                        return;
+                    }
                     log.warn("LLM 流式调用失败：{}", error.getMessage());
                     if (answer.length() == 0) {
                         streamText(fallback, emitter);
@@ -173,7 +182,7 @@ public class AiExplanationService {
                         return;
                     }
                     if (answer.length() > 0) {
-                        save(record, question, answer.toString(), model);
+                        save(record, question, answerHash, answer.toString(), model);
                         finish(emitter);
                     } else {
                         streamText(fallback, emitter);
@@ -229,17 +238,36 @@ public class AiExplanationService {
                 + "\n\n正确答案：" + question.getAnswer();
     }
 
-    private void save(PracticeRecord record, Question question, String content, String model) {
+    private void save(PracticeRecord record, Question question, String answerHash,
+                      String content, String model) {
         try {
             AiExplanation explanation = new AiExplanation();
             explanation.setUserId(record.getUserId());
             explanation.setQuestionId(question.getId());
+            explanation.setAnswerHash(answerHash);
             explanation.setPracticeRecordId(record.getId());
             explanation.setContent(content);
             explanation.setModel(model);
             aiExplanationMapper.upsert(explanation);
         } catch (Exception e) {
             log.warn("AI 讲解落库失败：{}", e.getMessage());
+        }
+    }
+
+    /** 不同错答分别缓存，避免后一次答错复用前一次答案的讲解 */
+    private String hashAnswer(String answer) {
+        String normalized = answer == null ? "" : answer.trim().toLowerCase(Locale.ROOT);
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(normalized.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : digest) {
+                sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+                sb.append(Character.forDigit(b & 0xF, 16));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 算法不可用", e);
         }
     }
 

@@ -9,6 +9,7 @@ public class AiExplanation {
     private Long id;
     private Long userId;
     private Long questionId;
+    private String answerHash;
     private Long practiceRecordId;
     private String content;
     private String model;

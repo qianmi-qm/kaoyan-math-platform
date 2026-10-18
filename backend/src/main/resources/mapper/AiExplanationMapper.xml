@@ -6,6 +6,7 @@
     <id property="id" column="id"/>
     <result property="userId" column="user_id"/>
     <result property="questionId" column="question_id"/>
+    <result property="answerHash" column="answer_hash"/>
     <result property="practiceRecordId" column="practice_record_id"/>
     <result property="content" column="content"/>
     <result property="model" column="model"/>
@@ -13,17 +14,17 @@
     <result property="updatedAt" column="updated_at"/>
   </resultMap>
 
-  <sql id="cols">id, user_id, question_id, practice_record_id, content, model, created_at, updated_at</sql>
+  <sql id="cols">id, user_id, question_id, answer_hash, practice_record_id, content, model, created_at, updated_at</sql>
 
-  <select id="selectByUserAndQuestion" resultMap="explanationMap">
+  <select id="selectByUserQuestionAndAnswer" resultMap="explanationMap">
     SELECT <include refid="cols"/>
     FROM ai_explanation
-    WHERE user_id = #{userId} AND question_id = #{questionId}
+    WHERE user_id = #{userId} AND question_id = #{questionId} AND answer_hash = #{answerHash}
   </select>
 
   <insert id="upsert" parameterType="com.kaoyan.platform.ai.entity.AiExplanation">
-    INSERT INTO ai_explanation (user_id, question_id, practice_record_id, content, model)
-    VALUES (#{userId}, #{questionId}, #{practiceRecordId}, #{content}, #{model}) AS incoming
+    INSERT INTO ai_explanation (user_id, question_id, answer_hash, practice_record_id, content, model)
+    VALUES (#{userId}, #{questionId}, #{answerHash}, #{practiceRecordId}, #{content}, #{model}) AS incoming
     ON DUPLICATE KEY UPDATE
       practice_record_id = incoming.practice_record_id,
       content = incoming.content,

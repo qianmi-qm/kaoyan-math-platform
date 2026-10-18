@@ -7,9 +7,10 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface AiExplanationMapper {
 
-    AiExplanation selectByUserAndQuestion(@Param("userId") Long userId,
-                                          @Param("questionId") Long questionId);
+    AiExplanation selectByUserQuestionAndAnswer(@Param("userId") Long userId,
+                                                @Param("questionId") Long questionId,
+                                                @Param("answerHash") String answerHash);
 
-    /** 同一用户同一题只保留一份讲解 */
+    /** 同一用户同一题同一答案只保留一份讲解 */
     int upsert(AiExplanation explanation);
 }

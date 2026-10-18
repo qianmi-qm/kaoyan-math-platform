@@ -5,12 +5,12 @@
 
 ## 1. 30 秒版本
 
-> 在 v1 的四模块之上，我给报告加了 Redis Cache-Aside，练习提交后先更 DB 再删缓存；错题讲解走 OpenAI 兼容的 SSE 流式接口，生成成功按“用户+题目”落库，二次查看不重复消耗 token。没有 key 或模型超时会自动降级为参考解析，页面不 500。Docker Compose 现在是 MySQL + Redis + 后端 + 前端四容器。
+> 在 v1 的四模块之上，我给报告加了 Redis Cache-Aside，练习提交后先更 DB 再删缓存；错题讲解走 OpenAI 兼容的 SSE 流式接口，生成成功按“用户+题目+答案指纹”落库，二次查看不重复消耗 token。没有 key 或模型超时会自动降级为参考解析，页面不 500。Docker Compose 现在是 MySQL + Redis + 后端 + 前端四容器。
 
 ## 2. 简历 bullet（v2 增量）
 
 - 为日报接口引入 Redis Cache-Aside（`report:{userId}:{date}`，25h TTL + 随机抖动），练习提交后先更新 DB 再删除缓存，读接口 RT 明显下降，并实现 Redis 故障 30 秒熔断降级。
-- 基于 OpenAI 兼容接口 + SSE 实现错题 AI 讲解，WebClient 流式转发、逐字输出；讲解按 `(user_id, question_id)` 落库复用，二次查看不再调用模型。
+- 基于 OpenAI 兼容接口 + SSE 实现错题 AI 讲解，WebClient 流式转发、逐字输出；讲解按 `(user_id, question_id, answer_hash)` 落库复用，二次查看不再调用模型。
 - 设计无 key / 超时 / 模型报错三级降级为参考解析，SSE 正常收尾，页面不 500；Nginx 关闭 `proxy_buffering` 保证流式不被缓冲。
 - 扩展 `practice_record.submitted_answer` 与 `ai_explanation` 表，补 Docker Redis 服务与后端 healthcheck，保持 v1 的 25 个测试全绿。
 
@@ -34,7 +34,7 @@
    AI 讲解是服务端单向推送，SSE 基于 HTTP、无需额外协议升级、断线重连简单；WebSocket 适合双向实时协作，这里不需要。
 
 4. **AI 讲解怎么控成本？**
-   成功落库按“用户+题目”复用；prompt 截断到 4000 字符；无 key 不调用；后续可加用户级配额、简单题走小模型、结果缓存。
+   成功落库按“用户+题目+答案指纹”复用；prompt 截断到 4000 字符；无 key 不调用；后续可加用户级配额、简单题走小模型、结果缓存。
 
 5. **AI 讲错了怎么办？**
    当前 prompt 明确“不要编造教材原文”，但 v2 仍可能幻觉；v3 计划 RAG 挂知识点原文 + 引用溯源，检索不到就降级声明。产品上线前还要加内容审核与用户反馈入口。

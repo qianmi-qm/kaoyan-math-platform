@@ -139,5 +139,5 @@ docker-compose.yml       # mysql + redis + backend + frontend 一键启动
 - v2 为什么先更 DB 再删缓存？——Cache-Aside 下避免旧值回填；见 `ReportCacheService`。
 - Redis 穿透/击穿/雪崩怎么防？——空值缓存可扩展、TTL 加随机抖动、故障 30 秒熔断降级。
 - 为什么用 SSE 不用 WebSocket？——AI 讲解是单向推送，SSE 基于 HTTP、断线重连简单。
-- AI 讲解怎么控 token？——成功后按 `(user_id, question_id)` 落库复用，prompt 截断，二次查看不再调模型。
+- AI 讲解怎么控 token？——成功后按 `(user_id, question_id, answer_hash)` 落库复用，prompt 截断，二次查看不再调模型。
 - 没有 AI key 会怎样？——降级为参考解析 + 正确答案，HTTP 200，不阻塞练习流程。
