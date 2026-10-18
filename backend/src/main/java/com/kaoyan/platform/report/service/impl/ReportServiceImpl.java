@@ -13,6 +13,7 @@ import com.kaoyan.platform.question.entity.Question;
 import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionKpRow;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
+import com.kaoyan.platform.report.cache.ReportCacheService;
 import com.kaoyan.platform.report.domain.MasteryCalculator;
 import com.kaoyan.platform.report.entity.DailyReport;
 import com.kaoyan.platform.report.mapper.DailyReportMapper;
@@ -45,6 +46,7 @@ public class ReportServiceImpl implements ReportService {
     private final CurrentUser currentUser;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final ReportCacheService reportCache;
 
     public ReportServiceImpl(DailyReportMapper dailyReportMapper,
                              PracticeRecordMapper practiceRecordMapper,
@@ -52,7 +54,8 @@ public class ReportServiceImpl implements ReportService {
                              KnowledgePointMapper knowledgePointMapper,
                              CurrentUser currentUser,
                              ObjectMapper objectMapper,
-                             Clock clock) {
+                             Clock clock,
+                             ReportCacheService reportCache) {
         this.dailyReportMapper = dailyReportMapper;
         this.practiceRecordMapper = practiceRecordMapper;
         this.questionMapper = questionMapper;
@@ -60,6 +63,7 @@ public class ReportServiceImpl implements ReportService {
         this.currentUser = currentUser;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.reportCache = reportCache;
     }
 
     /**
@@ -73,17 +77,25 @@ public class ReportServiceImpl implements ReportService {
         if (date.isAfter(today)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "不能查询未来日期的报告");
         }
+        DailyReportVO cached = reportCache.get(userId, date);
+        if (cached != null) {
+            return cached;
+        }
         if (date.isBefore(today)) {
             DailyReport stored = dailyReportMapper.selectByUserAndDate(userId, date);
             if (stored != null) {
-                return toVO(stored);
+                DailyReportVO vo = toVO(stored);
+                reportCache.put(userId, date, vo);
+                return vo;
             }
         }
         DailyReport report = generate(userId, date);
         if (date.isBefore(today)) {
             dailyReportMapper.upsert(report);
         }
-        return toVO(report);
+        DailyReportVO vo = toVO(report);
+        reportCache.put(userId, date, vo);
+        return vo;
     }
 
     private DailyReport generate(Long userId, LocalDate date) {

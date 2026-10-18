@@ -7,20 +7,21 @@
     <result property="userId" column="user_id"/>
     <result property="questionId" column="question_id"/>
     <result property="isCorrect" column="is_correct"/>
+    <result property="submittedAnswer" column="submitted_answer"/>
     <result property="durationSec" column="duration_sec"/>
     <result property="startedAt" column="started_at"/>
     <result property="submittedAt" column="submitted_at"/>
     <result property="practiceDate" column="practice_date"/>
   </resultMap>
 
-  <sql id="cols">id, user_id, question_id, is_correct, duration_sec, started_at, submitted_at, practice_date</sql>
+  <sql id="cols">id, user_id, question_id, is_correct, submitted_answer, duration_sec, started_at, submitted_at, practice_date</sql>
 
   <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
     INSERT INTO practice_record
-      (user_id, question_id, is_correct, duration_sec, started_at, submitted_at, practice_date)
+      (user_id, question_id, is_correct, submitted_answer, duration_sec, started_at, submitted_at, practice_date)
     VALUES
     <foreach collection="records" item="r" separator=",">
-      (#{r.userId}, #{r.questionId}, #{r.isCorrect}, #{r.durationSec}, #{r.startedAt}, #{r.submittedAt}, #{r.practiceDate})
+      (#{r.userId}, #{r.questionId}, #{r.isCorrect}, #{r.submittedAnswer}, #{r.durationSec}, #{r.startedAt}, #{r.submittedAt}, #{r.practiceDate})
     </foreach>
   </insert>
 
@@ -31,6 +32,7 @@
   <update id="updateSubmit" parameterType="com.kaoyan.platform.practice.entity.PracticeRecord">
     UPDATE practice_record
     SET is_correct = #{isCorrect},
+        submitted_answer = #{submittedAnswer},
         duration_sec = #{durationSec},
         submitted_at = #{submittedAt}
     WHERE id = #{id} AND submitted_at IS NULL

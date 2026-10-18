@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.ai.mapper.AiExplanationMapper">
+
+  <resultMap id="explanationMap" type="com.kaoyan.platform.ai.entity.AiExplanation">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="questionId" column="question_id"/>
+    <result property="practiceRecordId" column="practice_record_id"/>
+    <result property="content" column="content"/>
+    <result property="model" column="model"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <sql id="cols">id, user_id, question_id, practice_record_id, content, model, created_at, updated_at</sql>
+
+  <select id="selectByUserAndQuestion" resultMap="explanationMap">
+    SELECT <include refid="cols"/>
+    FROM ai_explanation
+    WHERE user_id = #{userId} AND question_id = #{questionId}
+  </select>
+
+  <insert id="upsert" parameterType="com.kaoyan.platform.ai.entity.AiExplanation">
+    INSERT INTO ai_explanation (user_id, question_id, practice_record_id, content, model)
+    VALUES (#{userId}, #{questionId}, #{practiceRecordId}, #{content}, #{model}) AS incoming
+    ON DUPLICATE KEY UPDATE
+      practice_record_id = incoming.practice_record_id,
+      content = incoming.content,
+      model = incoming.model,
+      updated_at = CURRENT_TIMESTAMP
+  </insert>
+</mapper>

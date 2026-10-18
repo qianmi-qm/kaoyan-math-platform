@@ -11,6 +11,7 @@ public class PracticeRecord {
     private Long userId;
     private Long questionId;
     private Boolean isCorrect;      // 大题未自评时为 null
+    private String submittedAnswer; // 用户提交的答案（AI 讲解用）
     private Integer durationSec;    // 后端计算，防前端造假
     private LocalDateTime startedAt;
     private LocalDateTime submittedAt;

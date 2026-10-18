@@ -14,6 +14,7 @@ import com.kaoyan.platform.question.entity.Question;
 import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionKpRow;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
+import com.kaoyan.platform.report.cache.ReportCacheService;
 import com.kaoyan.platform.review.service.ReviewService;
 import java.time.Clock;
 import java.time.Duration;
@@ -38,19 +39,22 @@ public class PracticeServiceImpl implements PracticeService {
     private final ReviewService reviewService;
     private final CurrentUser currentUser;
     private final Clock clock;
+    private final ReportCacheService reportCache;
 
     public PracticeServiceImpl(PracticeRecordMapper practiceRecordMapper,
                                QuestionMapper questionMapper,
                                KnowledgePointMapper knowledgePointMapper,
                                ReviewService reviewService,
                                CurrentUser currentUser,
-                               Clock clock) {
+                               Clock clock,
+                               ReportCacheService reportCache) {
         this.practiceRecordMapper = practiceRecordMapper;
         this.questionMapper = questionMapper;
         this.knowledgePointMapper = knowledgePointMapper;
         this.reviewService = reviewService;
         this.currentUser = currentUser;
         this.clock = clock;
+        this.reportCache = reportCache;
     }
 
     @Override
@@ -119,6 +123,7 @@ public class PracticeServiceImpl implements PracticeService {
         LocalDateTime now = LocalDateTime.now(clock);
         record.setDurationSec((int) Math.max(0, Duration.between(record.getStartedAt(), now).getSeconds()));
         record.setSubmittedAt(now);
+        record.setSubmittedAnswer(dto.getAnswer());
         Boolean correct;
         if (question.getType() == 3) {
             // 大题：selfEval 为空表示"先提交占位答案，稍后两步自评"
@@ -135,6 +140,8 @@ public class PracticeServiceImpl implements PracticeService {
         if (Boolean.FALSE.equals(record.getIsCorrect())) {
             reviewService.enqueueIfWrong(userId, record.getQuestionId());
         }
+        // 先更 DB 再删缓存（Cache-Aside）
+        reportCache.evict(userId, record.getPracticeDate());
         return toVO(record, question, true);
     }
 
@@ -164,6 +171,7 @@ public class PracticeServiceImpl implements PracticeService {
         if (!correct) {
             reviewService.enqueueIfWrong(userId, record.getQuestionId());
         }
+        reportCache.evict(userId, record.getPracticeDate());
         return toVO(record, question, true);
     }
 

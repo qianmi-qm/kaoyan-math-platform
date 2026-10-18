@@ -14,6 +14,7 @@ import com.kaoyan.platform.practice.mapper.PracticeRecordMapper;
 import com.kaoyan.platform.question.entity.Question;
 import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
+import com.kaoyan.platform.report.cache.ReportCacheService;
 import com.kaoyan.platform.review.service.ReviewService;
 import java.time.Clock;
 import java.time.Instant;
@@ -40,6 +41,8 @@ class PracticeServiceImplTest {
     @Mock
     private ReviewService reviewService;
     @Mock
+    private ReportCacheService reportCacheService;
+    @Mock
     private CurrentUser currentUser;
 
     private PracticeServiceImpl service;
@@ -48,7 +51,7 @@ class PracticeServiceImplTest {
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-10-18T12:00:00Z"), ZoneId.of("Asia/Shanghai"));
         service = new PracticeServiceImpl(practiceRecordMapper, questionMapper, knowledgePointMapper,
-                reviewService, currentUser, clock);
+                reviewService, currentUser, clock, reportCacheService);
         when(currentUser.getUserId()).thenReturn(1L);
     }
 

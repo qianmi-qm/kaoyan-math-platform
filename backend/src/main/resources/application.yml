@@ -12,6 +12,12 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      connect-timeout: 1s
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -27,3 +33,16 @@ springdoc:
 app:
   # v1 单用户设计：所有查询默认绑定该用户；多用户时替换为登录上下文（见 README 决策点）
   default-user-id: 1
+  cache:
+    report:
+      enabled: ${REPORT_CACHE_ENABLED:true}
+      # 25 小时，避免跨天前失效；实际写入时再加随机抖动
+      ttl-seconds: 90000
+  ai:
+    enabled: ${AI_ENABLED:true}
+    base-url: ${AI_BASE_URL:https://api.deepseek.com/v1}
+    # 为空时直接降级为参考解析，不发起网络请求
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:deepseek-chat}
+    timeout-seconds: 60
+    max-context-chars: 4000

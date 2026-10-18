@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS practice_record (
   user_id       BIGINT NOT NULL,
   question_id   BIGINT NOT NULL,
   is_correct    TINYINT(1) NULL COMMENT '1对 0错；大题未自评时为 NULL',
+  submitted_answer TEXT NULL COMMENT '用户提交的答案，AI 讲解用',
   duration_sec  INT NULL COMMENT '后端计算：submitted_at - started_at',
   started_at    DATETIME NOT NULL,
   submitted_at  DATETIME NULL,
@@ -87,6 +88,19 @@ CREATE TABLE IF NOT EXISTS daily_report (
   created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_user_date (user_id, report_date)
 ) ENGINE = InnoDB COMMENT '每日报告（生成时刻的快照，永久保留）';
+
+CREATE TABLE IF NOT EXISTS ai_explanation (
+  id                 BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id            BIGINT NOT NULL,
+  question_id        BIGINT NOT NULL,
+  practice_record_id BIGINT NULL COMMENT '首次生成讲解的记录',
+  content            MEDIUMTEXT NOT NULL COMMENT 'LLM 生成的讲解全文',
+  model              VARCHAR(64) NULL COMMENT '生成所用模型名',
+  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_user_question (user_id, question_id),
+  KEY idx_question (question_id)
+) ENGINE = InnoDB COMMENT 'AI 错题讲解（同一用户同一题只生成一次，控制 token）';
 
 -- ---------- 初始数据 ----------
 INSERT IGNORE INTO `user` (id, username) VALUES (1, 'learner');
