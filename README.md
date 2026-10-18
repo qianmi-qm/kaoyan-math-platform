@@ -1,8 +1,8 @@
 # 考研高等数学学习平台（v1）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6 全部落地，23 个验收测试全绿（4 冒烟 + 10 掌握度 + 8 复习调度 + 1 mapper XML 校验），并用临时 MySQL 8 + 后端 jar + Vite 代理走通了"建知识点 → 录题 / Excel 导入 → 练习判分 → 日报 / 掌握度 → 艾宾浩斯复习"全链路。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6 全部落地，23 个验收测试全绿（4 冒烟 + 10 掌握度 + 8 复习调度 + 1 mapper XML 校验），并用临时 MySQL 8 + 后端 jar + Vite 代理走通了"建知识点 → 录题 / Excel 导入 → 练习判分 → 日报 / 掌握度 → 艾宾浩斯复习"全链路；`docker compose up -d --build` 三容器也实际启动验证通过。
 
-> 当前进度（2026-10-18）：v1 功能完成、本地联调通过；`docker-compose.yml` 通过 `config` 校验（本机未装 Docker / WSL，未实测 `up`）；压测已有本机基线；下一步是 v2（Redis 报告缓存、大模型 SSE 讲解）。详细记录见 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。
+> 当前进度（2026-10-18）：v1 功能完成；本地联调与 Docker Compose 三容器联调均通过（本机 3306 被占用，Compose 用 `MYSQL_PORT=3307`）；压测已有本机基线；下一步是 v2（Redis 报告缓存、大模型 SSE 讲解）。详细记录见 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。
 
 配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 
@@ -17,7 +17,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6
 | `mvn test` | 23/23 通过 |
 | L1～L5 业务接口 | 可用（知识点树 / 题库 / 练习 / 报告 / 复习） |
 | 本地联调（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
-| Docker Compose 配置 | `docker compose config` 通过；未实测 `up`（本机无 Docker） |
+| Docker Compose | 三容器 `up` 验证通过（3307 / 8080 / 5173） |
 
 红灯不是缺陷，是完成定义——现在 23 个测试已经全部转绿。
 
@@ -34,7 +34,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6
 | L4 日报 | 4 题 / 对 3 / 正确率 75% / 平均 2s，掌握度与区间查询正常 |
 | L5 复习 | 答错入队；记住 → stage 1、+2 天；忘了 → stage 0、+1 天 |
 | L6 前端 | `vite build` 通过；dev server + `/api` 代理联调通过 |
-| L7 部署 | compose config 通过；本机无 Docker，未实测 up |
+| L7 部署 | `docker compose up -d --build` 三容器验证通过 |
 | 压测（本机单实例） | 题库列表 342 QPS / p95 260ms；知识点树 1579 QPS / p95 27ms；日报快照 1317 QPS / p95 17ms |
 
 ## 怎么学（六步闭环）
@@ -51,7 +51,7 @@ L1～L5 已完成，下表保留作为复习参考；v2 是下一阶段。
 | L4 | 报告：聚合 SQL + 掌握度 | `MasteryCalculatorTest` 全绿 | `report/domain`、`ReportServiceImpl` |
 | L5 | 复习：艾宾浩斯调度 | `EbbinghausSchedulerTest` 全绿 + 三接口可用 | `review/**` |
 | L6 | 前端：四页面 + KaTeX + ECharts | 走通"导入→练习→报告→复习" | `frontend/src/views/**` |
-| L7 | 工程收尾：README / 压测数字 / 简历 bullet | compose 配置校验 + 本地等价联调；Docker 未安装，未实测 up | 全仓库 |
+| L7 | 工程收尾：README / 压测数字 / 简历 bullet | `docker compose up -d --build` 三容器跑通 | 全仓库 |
 
 每层的实现提示都写在对应 Service 接口的 javadoc 和 Mapper XML 注释里。
 
@@ -60,10 +60,15 @@ L1～L5 已完成，下表保留作为复习参考；v2 是下一阶段。
 ### 方式一：Docker 一键启动（推荐，装好 Docker 后）
 
 ```bash
-docker-compose up --build
+docker compose up -d --build
 # 前端 http://localhost:5173
 # 后端 http://localhost:8080  Swagger http://localhost:8080/swagger-ui.html
-# MySQL 3306（root/root），首次启动自动执行 schema.sql 建表
+# MySQL 默认映射宿主 3306（root/root），首次启动自动执行 schema.sql 建表
+# 本机 3306 已被占用时（常见）：
+#   MYSQL_PORT=3307 docker compose up -d --build
+
+# 构建需要代理时（可选）：把 HTTP_PROXY / HTTPS_PROXY / MAVEN_OPTS 作为 build args 传入，
+# 其中 Maven 还需要 MAVEN_OPTS 里的 -Dhttps.proxyHost / -Dhttps.proxyPort。
 ```
 
 ### 方式二：本地开发

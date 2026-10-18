@@ -1,7 +1,7 @@
 # v1 联调与验收记录
 
 > 日期：2026-10-18
-> 环境：Windows / JDK 17.0.20.1 / Maven 3.9.9 / Node 20 / MySQL 8.0.46（临时实例，端口 3307）/ 后端可执行 jar / Vite dev server
+> 环境：Windows / JDK 17.0.20.1 / Maven 3.9.9 / Node 20 / MySQL 8.0.46（临时实例，端口 3307）/ Docker Desktop 4.95.0（Docker 29.8.2、Compose v5.6.0）/ 后端可执行 jar / Vite dev server
 > 说明：本机 3306 的 MySQL `root` 密码未知，为避免影响现有数据库，用 `mysqld --initialize-insecure` 在临时目录起了一个 3307 实例做联调；联调结束后可整个目录删除。
 
 ## 0. 单元测试
@@ -87,11 +87,23 @@ BUILD SUCCESS
   - `GET http://127.0.0.1:5173/api/knowledge-points` 返回与后端一致的数据
   - `GET http://127.0.0.1:5173/api/reports/daily?date=2026-10-18` 返回日报
 
-## 7. L7 部署
+## 7. L7 部署（Docker Compose 实跑）
 
-- `docker compose config --quiet` 通过，解析出 3 个服务：`mysql` / `backend` / `frontend`。
-- 本机没有 Docker Desktop，也没有 WSL 发行版，因此没有实际执行 `docker compose up`。
-- 等价替代验证：临时 MySQL 8 + 后端 jar + Vite dev server 三进程联调通过；Dockerfile / nginx / compose 均做了静态检查。
+- 安装 Docker Desktop 4.95.0 + WSL2，重启后引擎正常（Docker 29.8.2、Compose v5.6.0）。
+- 本机 3306 已被现有 MySQL 占用，因此宿主端口改用 3307：
+
+```bash
+MYSQL_PORT=3307 docker compose up -d --build
+```
+
+- 三容器状态：`kaoyan-mysql` healthy（3307→3306）、`kaoyan-backend` up（8080）、`kaoyan-frontend` up（5173）。
+- 验证：
+  - `curl http://127.0.0.1:8080/api/knowledge-points` 返回中文知识点树（`极限 / 导数 / 积分` 等）
+  - `curl http://127.0.0.1:5173/` 返回 200
+  - `curl http://127.0.0.1:5173/api/knowledge-points` 经 Nginx 代理返回与后端一致
+  - 容器内跑通 L2～L5：录题 → 练习判分（服务端计时）→ 日报 3 题 / 对 2 / 正确率 66.7% → 复习 stage 0→1、下次 +2 天
+- 构建注意：BuildKit 的 RUN 容器不继承宿主代理，需通过 compose build args 传入
+  `HTTP_PROXY` / `HTTPS_PROXY` / `MAVEN_OPTS`；MySQL 初始化脚本需 `SET NAMES utf8mb4` 才能正确写入中文。
 
 ## 8. 压测基线
 
@@ -110,10 +122,17 @@ BUILD SUCCESS
 1. **XML 注释里的 `--` 导致应用起不来**：`PracticeRecordMapper.xml` 注释中的长横线分隔线违反 XML 规范（注释内容不能含 `--`），MyBatis 解析 mapper 时直接失败。单测全绿但 `java -jar` 启动失败，属于"测试覆盖不到启动"的典型问题。已改为 `====` 分隔线，并补了 `MapperXmlWellFormedTest` 防回归（23 个测试中的 1 个）。
 2. **本机 MySQL 凭据与 `application.yml` 不一致**：默认 `root/root` 连不上现有 3306；改用临时实例 + 独立账号 `kaoyan` 联调，不动本机数据库。
 3. **控制台 GBK 编码导致中文 JSON 乱码**：命令行直接传中文会被按 GBK 编码发送，Jackson 报 `Invalid UTF-8 middle byte`；改为 UTF-8 文件 + `curl --data-binary @file`，schema 导入加 `--default-character-set=utf8mb4`。
+4. **Docker 初始化中文乱码**：`schema.sql` 没有显式 `SET NAMES utf8mb4`，MySQL 容器初始化时客户端按默认字符集写入，知识点变成 mojibake。已在 schema 首部加 `SET NAMES utf8mb4`，删除 volume 重新初始化后正常。
+5. **BuildKit 构建无代理**：Docker Desktop 的 daemon 拉镜像能走系统代理，但 `RUN mvn ...` 的构建容器没有代理环境，Maven 下载卡住。用 compose build args 注入 `HTTP_PROXY` / `HTTPS_PROXY`，并给 Maven 传 `MAVEN_OPTS` 的 `-Dhttps.proxyHost/-Dhttps.proxyPort` 后通过。
 
 ## 10. 复现步骤
 
 ```bash
+# 0) Docker Compose（推荐，三容器）
+MYSQL_PORT=3307 docker compose up -d --build
+curl http://127.0.0.1:8080/api/knowledge-points
+curl http://127.0.0.1:5173/
+
 # 1) 单测
 cd backend && mvn test
 
