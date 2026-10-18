@@ -1,10 +1,8 @@
-# 考研高等数学学习平台（v1）
+# 考研高等数学学习平台（v2）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6 全部落地，25 个验收测试全绿（4 冒烟 + 10 掌握度 + 8 复习调度 + 1 mapper XML + 2 练习服务回归），并用临时 MySQL 8 + 后端 jar + Vite 代理走通了"建知识点 → 录题 / Excel 导入 → 练习判分 → 日报 / 掌握度 → 艾宾浩斯复习"全链路；`docker compose up -d --build` 三容器也实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1（题库 / 练习 / 日报 / 艾宾浩斯复习）基础上加入 **Redis 报告缓存** 与 **AI 错题 SSE 讲解**；25 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
-> 当前进度（2026-10-18）：v1 功能完成；本地联调与 Docker Compose 三容器联调均通过（本机 3306 被占用，Compose 用 `MYSQL_PORT=3307`）；压测已有本机基线；下一步是 v2（Redis 报告缓存、大模型 SSE 讲解）。详细记录见 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。
->
-> 面试版使用说明（3 分钟演示脚本 + 10 个追问 + 简历 bullet）见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)。
+> 版本说明：`v1.1.0-interview` 是面试稳定版；当前 `v2` 分支是技术产品化版本，仍保持单用户。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 设计/联调见 [`docs/V2.md`](docs/V2.md)，v2 面试/产品包装见 [`docs/V2_PACKAGING.md`](docs/V2_PACKAGING.md)。
 
 配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 
@@ -17,9 +15,10 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
 | `mvn test` | 25/25 通过 |
-| L1～L5 业务接口 | 可用（知识点树 / 题库 / 练习 / 报告 / 复习） |
-| 本地联调（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
-| Docker Compose | 三容器 `up` 验证通过（3307 / 8080 / 5173） |
+| v1 业务链路（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
+| Redis 报告缓存 | 命中 / 提交后失效 / Redis 宕机降级通过 |
+| AI 错题讲解 | SSE 首调 / 二次读库 / 无 key 降级通过 |
+| Docker Compose | 四容器 `up`（3307 / 8080 / 5173；Redis 内部） |
 
 红灯不是缺陷，是完成定义——现在 25 个测试已经全部转绿。
 
@@ -36,12 +35,14 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6
 | L4 日报 | 4 题 / 对 3 / 正确率 75% / 平均 2s，掌握度与区间查询正常 |
 | L5 复习 | 答错入队；记住 → stage 1、+2 天；忘了 → stage 0、+1 天 |
 | L6 前端 | `vite build` 通过；dev server + `/api` 代理联调通过 |
-| L7 部署 | `docker compose up -d --build` 三容器验证通过 |
+| L7 部署 | `docker compose up -d --build` 四容器验证通过 |
+| v2 Redis | `report:1:{date}` 命中，TTL≈25h；提交后 key 删除并重新生成 |
+| v2 AI | 本地 mock OpenAI SSE 首调逐段返回并落库；二次读库不再调模型；无 key 降级 200 |
 | 压测（本机单实例） | 题库列表 342 QPS / p95 260ms；知识点树 1579 QPS / p95 27ms；日报快照 1317 QPS / p95 17ms |
 
 ## 怎么学（六步闭环）
 
-L1～L5 已完成，下表保留作为复习参考；v2 是下一阶段。
+L1～L5 已完成，下表保留作为 v1 复习参考；v2 的 Redis/AI 增量见 [`docs/V2.md`](docs/V2.md)。
 
 对每一层：读契约（接口 javadoc / 测试）→ 合卷实现 → 跑测试验收 → 与 AI 生成的参考实现对比 → 记决策日志。
 
@@ -53,7 +54,7 @@ L1～L5 已完成，下表保留作为复习参考；v2 是下一阶段。
 | L4 | 报告：聚合 SQL + 掌握度 | `MasteryCalculatorTest` 全绿 | `report/domain`、`ReportServiceImpl` |
 | L5 | 复习：艾宾浩斯调度 | `EbbinghausSchedulerTest` 全绿 + 三接口可用 | `review/**` |
 | L6 | 前端：四页面 + KaTeX + ECharts | 走通"导入→练习→报告→复习" | `frontend/src/views/**` |
-| L7 | 工程收尾：README / 压测数字 / 简历 bullet | `docker compose up -d --build` 三容器跑通 | 全仓库 |
+| L7 | 工程收尾：README / 压测数字 / 简历 bullet | `docker compose up -d --build` 四容器跑通 | 全仓库 |
 
 每层的实现提示都写在对应 Service 接口的 javadoc 和 Mapper XML 注释里。
 
@@ -65,8 +66,10 @@ L1～L5 已完成，下表保留作为复习参考；v2 是下一阶段。
 docker compose up -d --build
 # 前端 http://localhost:5173
 # 后端 http://localhost:8080  Swagger http://localhost:8080/swagger-ui.html
+# Redis 只在 compose 内部使用（6379，不映射宿主）
 # MySQL 默认映射宿主 3306（root/root）；公网/共享环境建议：
 #   cp .env.example .env && 修改 MYSQL_ROOT_PASSWORD
+# AI 讲解可选：在 .env 填 AI_API_KEY；不填则自动降级为参考解析
 # 本机 3306 已被占用时（常见）：
 #   MYSQL_PORT=3307 docker compose up -d --build
 # schema 变更后需要重建数据库卷（会清空数据）：
@@ -78,9 +81,9 @@ docker compose up -d --build
 
 ### 方式二：本地开发
 
-1. 准备 JDK 17+、Maven、Node 18+、MySQL 8
+1. 准备 JDK 17+、Maven、Node 18+、MySQL 8；v2 还需要 Redis 7（没有 Redis 时缓存自动降级）
 2. 建库：`mysql -uroot -p < backend/src/main/resources/db/schema.sql`
-3. 后端：`cd backend && mvn spring-boot:run`
+3. 后端：`cd backend && mvn spring-boot:run`（AI key 通过 `AI_API_KEY` 环境变量传入）
 4. 前端：`cd frontend && npm install && npm run dev`（已配 /api 代理到 8080）
 
 ### 前端 Mock 模式（不启动后端也能体验完整界面）
@@ -105,11 +108,12 @@ backend/
     common/      # Result 统一响应 / 全局异常 / Clock / 当前用户（已实现，可读可测）
     question/    # 题库模块（L1/L2）
     practice/    # 练习模块（L3）
-    report/      # 报告模块 + MasteryCalculator 掌握度算法（L4）
+    report/      # 报告模块 + MasteryCalculator + Redis 缓存（L4/v2）
     review/      # 复习模块 + EbbinghausScheduler 调度算法（L5）
+    ai/          # v2：错题 AI 讲解（SSE + 落库 + 降级）
   src/main/resources/
-    db/schema.sql        # 7 张表 DDL + 初始数据（已实现）
-    mapper/*.xml         # MyBatis SQL（L1~L5）
+    db/schema.sql        # 8 张表 DDL + 初始数据
+    mapper/*.xml         # MyBatis SQL
   src/test/java/         # 验收测试：25 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习服务）
 frontend/
   src/views/     # 四页面（题库/练习/报告/复习，已实现）
@@ -119,8 +123,10 @@ frontend/
   src/utils/     # math.js 公式渲染 / ui.js 公共样式映射
 docs/DECISION_LOG.md     # 决策日志（架构决策 + 联调踩坑）
 docs/VERIFICATION.md     # v1 联调与压测记录
-docs/INTERVIEW.md        # 面试版说明：演示脚本 / 追问 / 简历 bullet
-docker-compose.yml       # mysql + backend + frontend 一键启动
+docs/INTERVIEW.md        # v1 面试版：演示脚本 / 追问 / 简历 bullet
+docs/V2.md               # v2：Redis 缓存 + AI SSE 设计/联调记录
+docs/V2_PACKAGING.md     # v2：面试/产品两用包装
+docker-compose.yml       # mysql + redis + backend + frontend 一键启动
 ```
 
 ## 常用面试问题索引（先自测再看提示）
@@ -130,3 +136,8 @@ docker-compose.yml       # mysql + backend + frontend 一键启动
 - 为什么 `selectDailyAgg` 里正确数用 `COUNT(is_correct = 1 OR NULL)` 而不是 `SUM(is_correct)`？——有 NULL 行时两者结果不同。
 - `@Scheduled` 多实例会重复执行怎么办？——见 `ReviewServiceImpl` 的思考题注释。
 - 前端计时为什么不能作数？——见 `PracticeService.submit` javadoc 第 1 条。
+- v2 为什么先更 DB 再删缓存？——Cache-Aside 下避免旧值回填；见 `ReportCacheService`。
+- Redis 穿透/击穿/雪崩怎么防？——空值缓存可扩展、TTL 加随机抖动、故障 30 秒熔断降级。
+- 为什么用 SSE 不用 WebSocket？——AI 讲解是单向推送，SSE 基于 HTTP、断线重连简单。
+- AI 讲解怎么控 token？——成功后按 `(user_id, question_id)` 落库复用，prompt 截断，二次查看不再调模型。
+- 没有 AI key 会怎样？——降级为参考解析 + 正确答案，HTTP 200，不阻塞练习流程。

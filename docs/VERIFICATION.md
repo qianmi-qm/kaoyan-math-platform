@@ -1,5 +1,7 @@
 # v1 联调与验收记录
 
+> v2 增量（Redis 报告缓存 + AI SSE 讲解）见 [`V2.md`](V2.md)；本文保留 v1 的联调记录。
+
 > 日期：2026-10-18
 > 环境：Windows / JDK 17.0.20.1 / Maven 3.9.9 / Node 20 / MySQL 8.0.46（临时实例，端口 3307）/ Docker Desktop 4.95.0（Docker 29.8.2、Compose v5.6.0）/ 后端可执行 jar / Vite dev server
 > 说明：本机 3306 的 MySQL `root` 密码未知，为避免影响现有数据库，用 `mysqld --initialize-insecure` 在临时目录起了一个 3307 实例做联调；联调结束后可整个目录删除。
