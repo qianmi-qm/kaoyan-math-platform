@@ -1,6 +1,5 @@
 package com.kaoyan.platform.report.domain;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -36,22 +35,56 @@ public final class MasteryCalculator {
     public static double questionMastery(int recentTotal, int recentCorrect,
                                          int actualSeconds, int baselineSeconds,
                                          int streakCount) {
-        throw new UnsupportedOperationException("L4 待实现：题目级掌握度");
+        if (recentTotal <= 0) {
+            return 0.0;
+        }
+        if (baselineSeconds <= 0) {
+            throw new IllegalArgumentException("baselineSeconds 必须大于 0");
+        }
+
+        double accuracy = clamp01((double) recentCorrect / recentTotal);
+        double speed = actualSeconds <= 0
+                ? 0.0
+                : clamp01((double) baselineSeconds / actualSeconds);
+        double streak = clamp01(streakCount / 3.0);
+
+        return clamp01(WEIGHT_ACCURACY * accuracy + WEIGHT_SPEED * speed + WEIGHT_STREAK * streak);
     }
 
     /** 难度 → 基准用时（秒）：1→60，2→120，3→240；其他值抛 IllegalArgumentException */
     public static int baselineSeconds(int difficulty) {
-        throw new UnsupportedOperationException("L4 待实现：难度基准用时");
+        return switch (difficulty) {
+            case 1 -> 60;
+            case 2 -> 120;
+            case 3 -> 240;
+            default -> throw new IllegalArgumentException("非法难度：" + difficulty);
+        };
     }
 
     /** 知识点级掌握度：按题目权重加权平均；items 为空返回 0.0 */
     public static double kpMastery(List<KpItem> items) {
-        throw new UnsupportedOperationException("L4 待实现：知识点掌握度聚合");
+        if (items == null || items.isEmpty()) {
+            return 0.0;
+        }
+        double weightedSum = 0.0;
+        double weightSum = 0.0;
+        for (KpItem item : items) {
+            if (item == null || item.weight() <= 0) {
+                continue;
+            }
+            weightedSum += item.mastery() * item.weight();
+            weightSum += item.weight();
+        }
+        return weightSum <= 0 ? 0.0 : weightedSum / weightSum;
     }
 
     /** 薄弱点判定：掌握度 < 0.6 且练习题量 >= 3 */
     public static boolean isWeakPoint(double kpMastery, int questionCount) {
-        throw new UnsupportedOperationException("L4 待实现：薄弱点判定");
+        return kpMastery < WEAK_THRESHOLD && questionCount >= WEAK_MIN_QUESTIONS;
+    }
+
+    private static double clamp01(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
     }
 
     /** kpMastery 的输入项：mastery 为题目级掌握度，weight 取题目难度值 */

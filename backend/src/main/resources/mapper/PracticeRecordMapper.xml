@@ -54,30 +54,28 @@
   </select>
 
   <!-- ============================================================
-       ★ 你的任务（L4 主战场）：实现 selectDailyAgg
+       L4 日报聚合：selectDailyAgg
        ------------------------------------------------------------
        返回 DailyAgg(totalCount, correctCount, avgDurationSec)，
        map-underscore-to-camel-case 已开启，字段名对上即可。
 
-       要答对的三件事：
+       三个要点：
        1. 总数 = COUNT(*)
        2. 正确数 = COUNT(is_correct = 1 OR NULL)
-          —— 想一想：为什么不是 SUM(is_correct)？
-             （提示：大题未自评时 is_correct 是 NULL，SUM 遇到 NULL 会怎样？
-              COUNT 只数非 NULL，把"对"转成 1、把"错和未自评"转成 NULL，
-              这样 COUNT 得到的就是纯正确数）
-       3. 平均用时 = AVG(duration_sec)
-          —— 想一想：未提交的记录 duration_sec 是 NULL，AVG 会不会把它算成 0？
-             （提示：AVG 天然忽略 NULL，这正是我们要的——不能把"没做"算成"0 秒做完"）
+          —— 不用 SUM(is_correct)：大题未自评时 is_correct 是 NULL，
+             SUM 会忽略 NULL，而 COUNT 只数非 NULL 的 1。
+       3. 平均用时 = AVG(duration_sec)，四舍五入到秒
+          —— 未提交的记录 duration_sec 是 NULL，AVG 天然忽略它，
+             不会把"没做"算成"0 秒做完"。
 
        空表/当天无记录时返回一行 NULL 值，Service 层已做 null 兜底。
        ============================================================ -->
-  <!--
   <select id="selectDailyAgg" resultType="com.kaoyan.platform.practice.mapper.PracticeRecordMapper$DailyAgg">
     SELECT
-      ... 你的聚合 SQL ...
+      COUNT(*) AS total_count,
+      COUNT(is_correct = 1 OR NULL) AS correct_count,
+      ROUND(AVG(duration_sec)) AS avg_duration_sec
     FROM practice_record
     WHERE user_id = #{userId} AND practice_date = #{date}
   </select>
-  -->
 </mapper>

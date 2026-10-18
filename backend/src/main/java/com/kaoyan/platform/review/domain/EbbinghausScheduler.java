@@ -28,7 +28,10 @@ public final class EbbinghausScheduler {
      * currentStage 为负抛 IllegalArgumentException。
      */
     public static int nextStage(int currentStage, boolean remembered) {
-        throw new UnsupportedOperationException("L5 待实现：周期推进/重置");
+        if (currentStage < 0) {
+            throw new IllegalArgumentException("currentStage 不能为负：" + currentStage);
+        }
+        return remembered ? currentStage + 1 : 0;
     }
 
     /**
@@ -37,16 +40,19 @@ public final class EbbinghausScheduler {
      * （已完成的题不该再排期——调用方先判 isFinished）。
      */
     public static LocalDate nextReviewDate(int stage, LocalDate reviewedOn) {
-        throw new UnsupportedOperationException("L5 待实现：计算下次复习日");
+        if (stage < 0 || stage >= INTERVALS.length) {
+            throw new IllegalArgumentException("非法的复习阶段：" + stage);
+        }
+        return reviewedOn.plusDays(INTERVALS[stage]);
     }
 
     /** 首次入队：答错当天 +1 天 */
     public static LocalDate firstReviewDate(LocalDate answeredOn) {
-        throw new UnsupportedOperationException("L5 待实现：首次复习日");
+        return answeredOn.plusDays(1);
     }
 
     /** stage 已越过最后一个周期下标 → 该题复习完成 */
     public static boolean isFinished(int stage) {
-        throw new UnsupportedOperationException("L5 待实现：是否完成全部周期");
+        return stage >= INTERVALS.length;
     }
 }
