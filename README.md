@@ -3,6 +3,8 @@
 Spring Boot 3 + MyBatis + MySQL + Vue 3 的学习平台。v1 已完成：L1～L6 全部落地，25 个验收测试全绿（4 冒烟 + 10 掌握度 + 8 复习调度 + 1 mapper XML + 2 练习服务回归），并用临时 MySQL 8 + 后端 jar + Vite 代理走通了"建知识点 → 录题 / Excel 导入 → 练习判分 → 日报 / 掌握度 → 艾宾浩斯复习"全链路；`docker compose up -d --build` 三容器也实际启动验证通过。
 
 > 当前进度（2026-10-18）：v1 功能完成；本地联调与 Docker Compose 三容器联调均通过（本机 3306 被占用，Compose 用 `MYSQL_PORT=3307`）；压测已有本机基线；下一步是 v2（Redis 报告缓存、大模型 SSE 讲解）。详细记录见 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。
+>
+> 面试版使用说明（3 分钟演示脚本 + 10 个追问 + 简历 bullet）见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)。
 
 配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 
@@ -117,6 +119,7 @@ frontend/
   src/utils/     # math.js 公式渲染 / ui.js 公共样式映射
 docs/DECISION_LOG.md     # 决策日志（架构决策 + 联调踩坑）
 docs/VERIFICATION.md     # v1 联调与压测记录
+docs/INTERVIEW.md        # 面试版说明：演示脚本 / 追问 / 简历 bullet
 docker-compose.yml       # mysql + backend + frontend 一键启动
 ```
 
