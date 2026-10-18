@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaoyan.platform.ai.config.AiProperties;
 import com.kaoyan.platform.ai.entity.AiExplanation;
 import com.kaoyan.platform.ai.mapper.AiExplanationMapper;
+import com.kaoyan.platform.ai.support.AnswerFingerprint;
 import com.kaoyan.platform.common.support.CurrentUser;
 import com.kaoyan.platform.practice.entity.PracticeRecord;
 import com.kaoyan.platform.practice.mapper.PracticeRecordMapper;
@@ -14,13 +15,9 @@ import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,7 +36,7 @@ import reactor.core.Disposable;
 
 /**
  * 错题 AI 讲解：优先读已生成讲解 → 无 key/关闭时降级解析文本 → 否则调 OpenAI 兼容 SSE。
- * 讲解成功落库，同一用户同一题二次查看不再消耗 token。
+ * 讲解成功落库，同一用户同一题同一答案二次查看不再消耗 token。
  */
 @Service
 public class AiExplanationService {
@@ -99,7 +96,7 @@ public class AiExplanationService {
                 return;
             }
 
-            String answerHash = hashAnswer(record.getSubmittedAnswer());
+            String answerHash = AnswerFingerprint.hash(record.getSubmittedAnswer());
             AiExplanation cached = aiExplanationMapper.selectByUserQuestionAndAnswer(
                     userId, question.getId(), answerHash);
             if (cached != null && StringUtils.hasText(cached.getContent())) {
@@ -251,23 +248,6 @@ public class AiExplanationService {
             aiExplanationMapper.upsert(explanation);
         } catch (Exception e) {
             log.warn("AI 讲解落库失败：{}", e.getMessage());
-        }
-    }
-
-    /** 不同错答分别缓存，避免后一次答错复用前一次答案的讲解 */
-    private String hashAnswer(String answer) {
-        String normalized = answer == null ? "" : answer.trim().toLowerCase(Locale.ROOT);
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(normalized.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(64);
-            for (byte b : digest) {
-                sb.append(Character.forDigit((b >> 4) & 0xF, 16));
-                sb.append(Character.forDigit(b & 0xF, 16));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 算法不可用", e);
         }
     }
 

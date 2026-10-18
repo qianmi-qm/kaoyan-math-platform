@@ -12,7 +12,7 @@
 - 为日报接口引入 Redis Cache-Aside（`report:{userId}:{date}`，25h TTL + 随机抖动），练习提交后先更新 DB 再删除缓存，读接口 RT 明显下降，并实现 Redis 故障 30 秒熔断降级。
 - 基于 OpenAI 兼容接口 + SSE 实现错题 AI 讲解，WebClient 流式转发、逐字输出；讲解按 `(user_id, question_id, answer_hash)` 落库复用，二次查看不再调用模型。
 - 设计无 key / 超时 / 模型报错三级降级为参考解析，SSE 正常收尾，页面不 500；Nginx 关闭 `proxy_buffering` 保证流式不被缓冲。
-- 扩展 `practice_record.submitted_answer` 与 `ai_explanation` 表，补 Docker Redis 服务与后端 healthcheck，保持 v1 的 25 个测试全绿。
+- 扩展 `practice_record.submitted_answer` 与 `ai_explanation` 表，补 Docker Redis 服务与后端 healthcheck，测试增至 27 个全绿。
 
 ## 3. 一分钟演示
 

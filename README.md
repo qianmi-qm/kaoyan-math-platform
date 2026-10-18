@@ -1,6 +1,6 @@
 # 考研高等数学学习平台（v2）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1（题库 / 练习 / 日报 / 艾宾浩斯复习）基础上加入 **Redis 报告缓存** 与 **AI 错题 SSE 讲解**；25 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1（题库 / 练习 / 日报 / 艾宾浩斯复习）基础上加入 **Redis 报告缓存** 与 **AI 错题 SSE 讲解**；27 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
 > 版本说明：`v1.1.0-interview` 是面试稳定版；当前 `v2` 分支是技术产品化版本，仍保持单用户。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 设计/联调见 [`docs/V2.md`](docs/V2.md)，v2 面试/产品包装见 [`docs/V2_PACKAGING.md`](docs/V2_PACKAGING.md)。
 
@@ -14,13 +14,13 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1�
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
-| `mvn test` | 25/25 通过 |
+| `mvn test` | 27/27 通过 |
 | v1 业务链路（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
 | Redis 报告缓存 | 命中 / 提交后失效 / Redis 宕机降级通过 |
 | AI 错题讲解 | SSE 首调 / 二次读库 / 无 key 降级通过 |
 | Docker Compose | 四容器 `up`（3307 / 8080 / 5173；Redis 内部） |
 
-红灯不是缺陷，是完成定义——现在 25 个测试已经全部转绿。
+红灯不是缺陷，是完成定义——现在 27 个测试已经全部转绿。
 
 ## 验证记录（2026-10-18）
 
@@ -28,7 +28,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1�
 
 | 项 | 结果 |
 |----|------|
-| 单元测试 | 25/25 通过 |
+| 单元测试 | 27/27 通过 |
 | L1 知识点树 | 3 个根节点 / 6 个知识点 |
 | L2 题库 | 手动录入 4 题；Excel 导入 3 行 → 2 入库 + 1 重复；重复导入 0 入库 + 3 重复 |
 | L3 练习 | 4 条记录，服务端计时 2～3s，判分与自评正常 |
@@ -74,6 +74,7 @@ docker compose up -d --build
 #   MYSQL_PORT=3307 docker compose up -d --build
 # schema 变更后需要重建数据库卷（会清空数据）：
 #   docker compose down -v && docker compose up -d --build
+# 注意：v2.0.1 的 answer_hash 升级已内置启动迁移，不需要为它清库
 
 # 构建需要代理时（可选）：把 HTTP_PROXY / HTTPS_PROXY / MAVEN_OPTS 作为 build args 传入，
 # 其中 Maven 还需要 MAVEN_OPTS 里的 -Dhttps.proxyHost / -Dhttps.proxyPort。
@@ -97,7 +98,7 @@ docker compose up -d --build
 ```bash
 cd backend
 mvn compile        # 编译
-mvn test           # 25 个验收测试全绿
+mvn test           # 27 个验收测试全绿
 ```
 
 ## 目录结构
@@ -114,7 +115,7 @@ backend/
   src/main/resources/
     db/schema.sql        # 8 张表 DDL + 初始数据
     mapper/*.xml         # MyBatis SQL
-  src/test/java/         # 验收测试：25 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习服务）
+  src/test/java/         # 验收测试：27 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习服务 + v2 缓存/指纹）
 frontend/
   src/views/     # 四页面（题库/练习/报告/复习，已实现）
   src/api/       # 请求封装 + 后端/mock 字段统一适配（normalize.js）
