@@ -2,6 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply bg-slate-50 text-slate-800;
+  @apply bg-slate-50 text-slate-800 antialiased;
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+::selection {
+  @apply bg-indigo-200 text-indigo-900;
+}
+
+@layer components {
+  .app-card {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40;
+  }
+
+  .app-card-hover {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/60;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300/50 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-800;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium;
+  }
+
+  .katex-display {
+    @apply my-2 overflow-x-auto overflow-y-hidden py-1;
+  }
+}
+
+@layer utilities {
+  .app-bg {
+    background:
+      radial-gradient(900px 420px at 8% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
+      radial-gradient(700px 360px at 100% 0%, rgba(168, 85, 247, 0.08), transparent 55%),
+      linear-gradient(180deg, #f8fafc 0%, #f8fafc 100%);
+  }
+
+  .grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.10) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, black, transparent 85%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .fade-up {
+    animation: fade-up 0.45s ease-out both;
+  }
+
+  .scan-line {
+    animation: scan 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scan {
+  0%, 100% {
+    transform: translateY(-10%);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(110%);
+    opacity: 1;
+  }
 }

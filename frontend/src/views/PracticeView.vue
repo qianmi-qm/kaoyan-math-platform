@@ -234,12 +234,18 @@ onUnmounted(() => {
 
 <template>
   <div class="space-y-6">
+    <header v-if="phase === 'setup'">
+      <div class="eyebrow">Practice</div>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">开始练习</h1>
+      <p class="mt-2 text-sm text-slate-500">选一个模式，给自己一组专注的题。</p>
+    </header>
+
     <div v-if="error" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm">
       {{ error }}
     </div>
     <!-- 选题阶段 -->
-    <section v-if="phase === 'setup'" class="bg-white rounded-xl border border-slate-200 p-6">
-      <h2 class="text-lg font-bold mb-4">开始练习</h2>
+    <section v-if="phase === 'setup'" class="app-card p-5 sm:p-7">
+      <h2 class="mb-5 text-base font-semibold text-slate-800">练习设置</h2>
 
       <div class="space-y-5">
         <div>

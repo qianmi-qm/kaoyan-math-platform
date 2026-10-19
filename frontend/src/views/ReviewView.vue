@@ -14,6 +14,14 @@ const remaining = computed(() => todayList.value.filter(t => !finishedIds.value.
 const completed = computed(() => todayList.value.filter(t => finishedIds.value.has(t.id)))
 
 const INTERVALS = [1, 2, 4, 7, 15]
+const STAGE_COLORS = ['bg-indigo-500', 'bg-violet-500', 'bg-sky-500', 'bg-amber-400', 'bg-emerald-500']
+
+const stageTotal = computed(() => (stats.value?.stageCounts || []).reduce((sum, item) => sum + item.count, 0))
+
+function stagePercent(item) {
+  if (!stageTotal.value) return 0
+  return (item.count / stageTotal.value) * 100
+}
 
 async function loadReviews() {
   loading.value = true
@@ -64,121 +72,125 @@ onMounted(() => { loadReviews(); loadStats() })
 
 <template>
   <div class="space-y-6">
-    <div v-if="error" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm">
+    <header>
+      <div class="eyebrow">Spaced Repetition</div>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">今日复习</h1>
+      <p class="mt-2 text-sm text-slate-500">按艾宾浩斯 5 轮周期，把今天该复习的题过一遍。</p>
+    </header>
+
+    <div v-if="error" class="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
       {{ error }}
     </div>
-    <!-- 顶部统计 -->
-    <section class="bg-white rounded-xl border border-slate-200 p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold">今日复习</h2>
-        <span class="text-sm text-slate-500">艾宾浩斯遗忘曲线 · 5 轮周期</span>
+
+    <section class="app-card p-5 sm:p-6">
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base font-semibold text-slate-800">复习概览</h2>
+        <span class="chip bg-slate-100 text-slate-500">5 轮周期 · 间隔 1 / 2 / 4 / 7 / 15 天</span>
       </div>
 
-      <div v-if="stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="p-4 bg-indigo-50 rounded-xl text-center">
-          <div class="text-xs text-indigo-600 mb-1">今日到期</div>
-          <div class="text-2xl font-bold text-indigo-700">{{ stats.dueToday }}</div>
-          <div class="text-xs text-indigo-500 mt-1">待复习</div>
+      <div v-if="stats" class="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="rounded-2xl bg-indigo-50/80 p-4">
+          <div class="text-[11px] font-medium text-indigo-500">今日到期</div>
+          <div class="mt-1 text-2xl font-bold text-indigo-700">{{ stats.dueToday }}</div>
+          <div class="mt-1 text-[11px] text-indigo-400">待复习</div>
         </div>
-        <div class="p-4 bg-amber-50 rounded-xl text-center">
-          <div class="text-xs text-amber-600 mb-1">队列总数</div>
-          <div class="text-2xl font-bold text-amber-700">{{ stats.activeTotal }}</div>
-          <div class="text-xs text-amber-500 mt-1">进行中</div>
+        <div class="rounded-2xl bg-amber-50/80 p-4">
+          <div class="text-[11px] font-medium text-amber-600">队列总数</div>
+          <div class="mt-1 text-2xl font-bold text-amber-700">{{ stats.activeTotal }}</div>
+          <div class="mt-1 text-[11px] text-amber-500">进行中</div>
         </div>
-        <div class="p-4 bg-emerald-50 rounded-xl text-center">
-          <div class="text-xs text-emerald-600 mb-1">已完成</div>
-          <div class="text-2xl font-bold text-emerald-700">{{ stats.completedTotal }}</div>
-          <div class="text-xs text-emerald-500 mt-1">全部 5 轮</div>
+        <div class="rounded-2xl bg-emerald-50/80 p-4">
+          <div class="text-[11px] font-medium text-emerald-600">已完成</div>
+          <div class="mt-1 text-2xl font-bold text-emerald-700">{{ stats.completedTotal }}</div>
+          <div class="mt-1 text-[11px] text-emerald-500">全部 5 轮</div>
         </div>
-        <div class="p-4 bg-violet-50 rounded-xl text-center">
-          <div class="text-xs text-violet-600 mb-1">今日已复习</div>
-          <div class="text-2xl font-bold text-violet-700">{{ finishedIds.size }}</div>
-          <div class="text-xs text-violet-500 mt-1">继续加油</div>
+        <div class="rounded-2xl bg-violet-50/80 p-4">
+          <div class="text-[11px] font-medium text-violet-600">今日已复习</div>
+          <div class="mt-1 text-2xl font-bold text-violet-700">{{ finishedIds.size }}</div>
+          <div class="mt-1 text-[11px] text-violet-500">继续加油</div>
         </div>
       </div>
 
-      <!-- 各周期积压 -->
-      <div v-if="stats?.stageCounts" class="pt-4 border-t border-slate-100">
-        <div class="text-sm text-slate-600 mb-3">各周期积压分布</div>
-        <div class="flex items-end gap-3 h-24">
+      <div v-if="stats?.stageCounts" class="border-t border-slate-100 pt-4">
+        <div class="mb-3 flex items-center justify-between">
+          <div class="text-xs font-medium text-slate-600">各周期积压分布</div>
+          <div class="text-[11px] text-slate-400">共 {{ stageTotal }} 题</div>
+        </div>
+        <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
           <div
-            v-for="sc in stats.stageCounts"
+            v-for="(sc, i) in stats.stageCounts"
             :key="sc.stage"
-            class="flex-1 flex flex-col items-center gap-1"
-          >
-            <div
-              class="w-full bg-indigo-500 rounded-t transition-all"
-              :style="{ height: Math.max(4, sc.count / Math.max(...stats.stageCounts.map(s => s.count)) * 64) + 'px' }"
-            ></div>
-            <div class="text-xs text-slate-500">{{ INTERVALS[sc.stage] }}天</div>
-            <div class="text-xs font-medium text-slate-700">{{ sc.count }}</div>
+            :class="STAGE_COLORS[i]"
+            :style="{ width: stagePercent(sc) + '%' }"
+            :title="`第 ${sc.stage + 1} 轮：${sc.count} 题`"
+          ></div>
+        </div>
+        <div class="mt-3 grid grid-cols-5 gap-1 text-center">
+          <div v-for="(sc, i) in stats.stageCounts" :key="sc.stage">
+            <div class="text-[11px] font-medium text-slate-700">{{ sc.count }}</div>
+            <div class="text-[10px] text-slate-400">{{ INTERVALS[sc.stage] }}天</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 待复习清单 -->
     <section>
-      <h3 class="font-medium text-slate-700 mb-3 flex items-center justify-between">
-        <span>待复习（{{ remaining.length }} 题）</span>
-        <span v-if="completed.length" class="text-sm font-normal text-emerald-600">已完成 {{ completed.length }} 题</span>
+      <h3 class="mb-3 flex items-center justify-between text-sm font-semibold text-slate-700">
+        <span>待复习 <span class="font-normal text-slate-400">（{{ remaining.length }} 题）</span></span>
+        <span v-if="completed.length" class="text-xs font-normal text-emerald-600">已完成 {{ completed.length }} 题</span>
       </h3>
 
-      <div v-if="loading" class="text-center py-12 text-slate-400 bg-white rounded-xl border border-slate-200">加载中...</div>
+      <div v-if="loading" class="app-card flex items-center justify-center gap-2 py-14 text-sm text-slate-400">
+        <span class="h-2 w-2 animate-pulse rounded-full bg-indigo-400"></span>加载中…
+      </div>
 
-      <div v-else-if="!remaining.length" class="text-center py-12 text-slate-400 bg-white rounded-xl border border-slate-200">
-        <div class="text-4xl mb-2">🎉</div>
-        <div>今日复习全部完成！</div>
+      <div v-else-if="!remaining.length" class="app-card py-14 text-center">
+        <div class="text-4xl">🎉</div>
+        <div class="mt-3 text-sm font-medium text-slate-700">今日复习全部完成</div>
+        <div class="mt-1 text-xs text-slate-400">去题库再练几题，或者明天见</div>
       </div>
 
       <div v-else class="space-y-3">
         <article
           v-for="item in remaining"
           :key="item.id"
-          :class="[
-            'bg-white rounded-xl border p-5 transition',
-            item.overdue ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200'
-          ]"
+          class="app-card p-5 transition"
+          :class="item.overdue ? '!border-rose-200 bg-rose-50/30' : ''"
         >
-          <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
-                {{ stageLabel(item.stage) }}
-              </span>
-              <span v-if="item.overdue" class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-medium">
-                ⚠ 逾期补做
-              </span>
+          <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="chip bg-indigo-50 text-indigo-600">{{ stageLabel(item.stage) }}</span>
+              <span v-if="item.overdue" class="chip bg-rose-50 text-rose-600">⚠ 逾期补做</span>
             </div>
-            <span class="text-xs text-slate-400">下次间隔：{{ nextIntervalDays(item.stage) }} 天</span>
+            <span class="text-[11px] text-slate-400">下次间隔：{{ nextIntervalDays(item.stage) }} 天</span>
           </div>
 
-          <div class="text-slate-700 leading-relaxed mb-4" v-html="renderMath(item.questionPreview)"></div>
+          <div class="mb-4 text-[15px] leading-8 text-slate-700" v-html="renderMath(item.questionPreview)"></div>
 
-          <div class="flex gap-3">
+          <div class="flex gap-2.5">
             <button
               @click="handleRemember(item, false)"
               :disabled="pendingIds.has(item.id)"
-              class="flex-1 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-sm font-medium transition disabled:opacity-40"
+              class="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-40"
             >忘了 · 重置</button>
             <button
               @click="handleRemember(item, true)"
               :disabled="pendingIds.has(item.id)"
-              class="flex-1 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium transition disabled:opacity-40"
+              class="flex-1 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
             >记住了 · 推进</button>
           </div>
         </article>
       </div>
     </section>
 
-    <!-- 复习规则说明 -->
-    <section class="bg-slate-50 border border-slate-200 rounded-xl p-5">
-      <h4 class="font-medium text-slate-700 mb-3">📖 复习规则</h4>
-      <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
-        <li><strong>5 轮周期</strong>：第 1、2、4、7、15 天各复习一次，完成后题目从队列移除。</li>
-        <li><strong>记住了</strong>：进入下一周期，下次复习日 = 今天 + 下一周期天数。</li>
-        <li><strong>忘了</strong>：重置回第 1 轮，明天重新开始。</li>
-        <li><strong>逾期补做</strong>：错过的日子不会自动跳级，从你实际复习日重新计算。</li>
-        <li><strong>核心公式</strong>：掌握度 = 0.5×正确率 + 0.3×速度 + 0.2×连对，低于 0.6 自动入队。</li>
+    <section class="app-card p-5">
+      <h4 class="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700"><span>📖</span>复习规则</h4>
+      <ul class="list-inside list-disc space-y-2 text-xs leading-6 text-slate-500">
+        <li><strong class="text-slate-700">5 轮周期</strong>：第 1、2、4、7、15 天各复习一次，完成后题目从队列移除。</li>
+        <li><strong class="text-slate-700">记住了</strong>：进入下一周期，下次复习日 = 今天 + 下一周期天数。</li>
+        <li><strong class="text-slate-700">忘了</strong>：重置回第 1 轮，明天重新开始。</li>
+        <li><strong class="text-slate-700">逾期补做</strong>：错过的日子不会自动跳级，从你实际复习日重新计算。</li>
+        <li><strong class="text-slate-700">核心公式</strong>：掌握度 = 0.5×正确率 + 0.3×速度 + 0.2×连对，低于 0.6 自动入队。</li>
       </ul>
     </section>
   </div>

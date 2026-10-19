@@ -55,89 +55,157 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-    <div class="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-      <div class="mb-6">
-        <div class="text-2xl font-bold text-slate-800">考研高数学习平台</div>
-        <div class="text-sm text-slate-500 mt-1">登录后继续你的学习进度</div>
+  <div class="min-h-screen bg-slate-50 lg:grid lg:grid-cols-[1.05fr_0.95fr]">
+    <!-- 品牌区：桌面端 -->
+    <section class="relative hidden overflow-hidden bg-[#0d1024] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <div class="absolute inset-0 grid-pattern opacity-40"></div>
+      <div class="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl"></div>
+      <div class="absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-violet-500/15 blur-3xl"></div>
+
+      <div class="relative">
+        <div class="flex items-center gap-3">
+          <span class="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 text-2xl font-serif ring-1 ring-white/15">∫</span>
+          <div>
+            <div class="text-lg font-bold tracking-tight">研途高数</div>
+            <div class="text-[10px] uppercase tracking-[0.24em] text-indigo-200/60">Math Lab</div>
+          </div>
+        </div>
+
+        <div class="mt-24 max-w-lg">
+          <div class="eyebrow !text-indigo-300">考研数学 · 智能学习空间</div>
+          <h1 class="mt-5 text-5xl font-bold leading-[1.15] tracking-tight text-balance">
+            把每一道错题，<br />
+            变成下一次<span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">得分</span>。
+          </h1>
+          <p class="mt-6 max-w-md text-[15px] leading-8 text-slate-300/80">
+            题库、练习、日报、艾宾浩斯复习和 AI 拍照搜题，放在一个安静的工作台里。
+          </p>
+        </div>
+
+        <div class="mt-12 max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+          <div class="flex items-center justify-between text-xs text-indigo-200/60">
+            <span>今日专注</span>
+            <span>DAY 01</span>
+          </div>
+          <div class="mt-3 font-serif text-2xl tracking-wide text-white/90">
+            lim<sub class="text-base">x→0</sub> sin x / x = 1
+          </div>
+          <div class="mt-4 flex gap-2 text-[11px] text-slate-300/70">
+            <span class="chip bg-white/10 text-indigo-100">极限</span>
+            <span class="chip bg-white/10 text-indigo-100">重要极限</span>
+            <span class="chip bg-white/10 text-indigo-100">0/0 型</span>
+          </div>
+        </div>
       </div>
 
-      <div class="flex rounded-lg bg-slate-100 p-1 mb-6">
-        <button
-          type="button"
-          class="flex-1 py-2 rounded-md text-sm font-medium transition"
-          :class="mode === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
-          @click="switchMode('login')"
-        >登录</button>
-        <button
-          type="button"
-          class="flex-1 py-2 rounded-md text-sm font-medium transition"
-          :class="mode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'"
-          @click="switchMode('register')"
-        >注册</button>
+      <div class="relative flex items-center gap-6 text-[11px] text-slate-400">
+        <span>题库练习</span>
+        <span class="h-1 w-1 rounded-full bg-slate-600"></span>
+        <span>AI 拍照搜题</span>
+        <span class="h-1 w-1 rounded-full bg-slate-600"></span>
+        <span>遗忘曲线复习</span>
       </div>
+    </section>
 
-      <form class="space-y-4" @submit.prevent="submit">
-        <div>
-          <label class="block text-sm text-slate-600 mb-1">用户名</label>
-          <input
-            v-model="username"
-            type="text"
-            autocomplete="username"
-            placeholder="3~50 位字母、数字或下划线"
-            class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-          />
-        </div>
-        <div>
-          <label class="block text-sm text-slate-600 mb-1">密码</label>
-          <input
-            v-model="password"
-            type="password"
-            :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
-            placeholder="至少 6 位"
-            class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-          />
-        </div>
-        <div v-if="mode === 'register'">
-          <label class="block text-sm text-slate-600 mb-1">邮箱（可选，用于验证/找回密码）</label>
-          <input
-            v-model="email"
-            type="email"
-            autocomplete="email"
-            placeholder="you@example.com"
-            class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-          />
-        </div>
-        <div v-if="mode === 'register'">
-          <label class="block text-sm text-slate-600 mb-1">确认密码</label>
-          <input
-            v-model="confirmPassword"
-            type="password"
-            autocomplete="new-password"
-            placeholder="再输入一次"
-            class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-          />
+    <!-- 表单区 -->
+    <section class="relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-8">
+      <div class="absolute inset-0 app-bg lg:hidden"></div>
+      <div class="relative w-full max-w-[420px]">
+        <div class="mb-8 flex items-center gap-2.5 lg:hidden">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xl font-serif text-white shadow-lg shadow-indigo-500/25">∫</span>
+          <div>
+            <div class="text-base font-bold text-slate-900">研途高数</div>
+            <div class="text-[9px] uppercase tracking-[0.22em] text-slate-400">Math Lab</div>
+          </div>
         </div>
 
-        <div v-if="error" class="text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-          {{ error }}
+        <div class="app-card p-7 sm:p-9">
+          <div class="mb-7">
+            <div class="eyebrow">{{ mode === 'login' ? 'Welcome back' : 'Create account' }}</div>
+            <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+              {{ mode === 'login' ? '继续今天的学习' : '创建你的学习空间' }}
+            </h2>
+            <p class="mt-2 text-sm text-slate-500">
+              {{ mode === 'login' ? '登录后继续你的学习进度' : '注册即开始，记录只属于你' }}
+            </p>
+          </div>
+
+          <div class="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+            <button
+              type="button"
+              class="rounded-lg py-2 text-sm font-semibold transition"
+              :class="mode === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+              @click="switchMode('login')"
+            >登录</button>
+            <button
+              type="button"
+              class="rounded-lg py-2 text-sm font-semibold transition"
+              :class="mode === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+              @click="switchMode('register')"
+            >注册</button>
+          </div>
+
+          <form class="space-y-4" @submit.prevent="submit">
+            <div>
+              <label class="mb-1.5 block text-xs font-medium text-slate-600">用户名</label>
+              <input
+                v-model="username"
+                type="text"
+                autocomplete="username"
+                placeholder="3~50 位字母、数字或下划线"
+                class="input-field"
+              />
+            </div>
+            <div>
+              <label class="mb-1.5 block text-xs font-medium text-slate-600">密码</label>
+              <input
+                v-model="password"
+                type="password"
+                :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
+                placeholder="至少 6 位"
+                class="input-field"
+              />
+            </div>
+            <div v-if="mode === 'register'">
+              <label class="mb-1.5 block text-xs font-medium text-slate-600">邮箱 <span class="font-normal text-slate-400">可选，用于验证 / 找回密码</span></label>
+              <input
+                v-model="email"
+                type="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                class="input-field"
+              />
+            </div>
+            <div v-if="mode === 'register'">
+              <label class="mb-1.5 block text-xs font-medium text-slate-600">确认密码</label>
+              <input
+                v-model="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                placeholder="再输入一次"
+                class="input-field"
+              />
+            </div>
+
+            <div v-if="error" class="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-2.5 text-sm text-rose-600">
+              {{ error }}
+            </div>
+
+            <button type="submit" :disabled="loading" class="btn-primary mt-1 w-full py-3">
+              {{ loading ? '请稍候…' : (mode === 'login' ? '进入学习空间' : '注册并开始') }}
+            </button>
+          </form>
+
+          <div v-if="mode === 'login'" class="mt-4 text-center">
+            <RouterLink to="/forgot-password" class="text-xs text-slate-400 transition hover:text-indigo-600">忘记密码？</RouterLink>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition disabled:opacity-50"
-        >{{ loading ? '请稍候…' : (mode === 'login' ? '登录' : '注册并登录') }}</button>
-      </form>
-
-      <div v-if="mode === 'login'" class="mt-3 text-center">
-        <RouterLink to="/forgot-password" class="text-sm text-slate-500 hover:text-indigo-600">忘记密码？</RouterLink>
+        <p class="mt-5 text-center text-[11px] leading-5 text-slate-400">
+          演示账号由部署者通过 <span class="font-mono text-slate-500">DEMO_USER_ENABLED</span> 配置<br />
+          新注册账号从空题库视角开始，学习记录互相隔离
+        </p>
       </div>
-
-      <div class="mt-5 text-xs text-slate-400 leading-relaxed">
-        演示账号由部署者通过 <span class="font-mono">DEMO_USER_ENABLED / DEMO_USER_PASSWORD</span> 配置。<br />
-        新注册账号从空题库视角开始，学习记录互相隔离。
-      </div>
-    </div>
+    </section>
   </div>
 </template>
