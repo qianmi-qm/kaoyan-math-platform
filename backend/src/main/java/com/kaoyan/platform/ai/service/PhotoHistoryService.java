@@ -8,6 +8,8 @@ import com.kaoyan.platform.ai.vo.PhotoSearchRecordVO;
 import com.kaoyan.platform.common.exception.BusinessException;
 import com.kaoyan.platform.common.result.ErrorCode;
 import com.kaoyan.platform.common.result.PageVO;
+import com.kaoyan.platform.question.service.QuestionService;
+import com.kaoyan.platform.question.vo.QuestionVO;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +20,13 @@ public class PhotoHistoryService {
     private static final int MAX_PAGE_SIZE = 50;
 
     private final PhotoSearchRecordMapper mapper;
+    private final QuestionService questionService;
     private final ObjectMapper objectMapper;
 
-    public PhotoHistoryService(PhotoSearchRecordMapper mapper, ObjectMapper objectMapper) {
+    public PhotoHistoryService(PhotoSearchRecordMapper mapper, QuestionService questionService,
+                               ObjectMapper objectMapper) {
         this.mapper = mapper;
+        this.questionService = questionService;
         this.objectMapper = objectMapper;
     }
 
@@ -49,6 +54,11 @@ public class PhotoHistoryService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "搜题记录不存在");
         }
         return toVO(require(userId, id));
+    }
+
+    public List<QuestionVO> similar(Long userId, Long id, int limit) {
+        PhotoSearchRecord record = require(userId, id);
+        return questionService.similar(readList(record.getKnowledgePointsJson()), limit);
     }
 
     private PhotoSearchRecord require(Long userId, Long id) {

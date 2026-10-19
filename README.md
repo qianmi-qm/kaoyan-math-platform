@@ -1,6 +1,6 @@
 # 考研高等数学学习平台（v3）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员后台、题库编辑、拍照搜题/搜题历史/错题本、token 刷新/撤销、Redis 限流、AI 每日配额、修改密码、邮箱验证与找回密码**；63 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员后台、题库编辑、拍照搜题/搜题历史/错题本、同类题练习、token 刷新/撤销、Redis 限流、AI 每日配额、修改密码、邮箱验证与找回密码**；63 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
 > 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)。
 
@@ -25,6 +25,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 | v3 邮箱/找回 | 验证邮箱、忘记密码、重置密码（token 单次 30 分钟） |
 | v3 拍照搜题 | 上传/拍照 → vision 识别 → 答案 + 步骤；图片不落盘 |
 | v3 搜题历史 | 识别结果落库；支持历史、收藏/错题本、删除 |
+| v3 同类题 | 按知识点匹配题库，一键进入指定题练习 |
 | v3 token | access 2h + refresh 7d，刷新轮换，登出/改密递增 token_version 撤销旧 token |
 | v3 AI 配额 | 每用户每日 20 次真实模型调用，Redis/MySQL 记录用量；缓存与降级不扣 |
 | Redis 报告缓存 | 命中 / 提交后失效 / Redis 宕机降级通过 |

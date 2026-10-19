@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '../api'
 import { authHeaders, clearAuth, isMockMode } from '../auth'
 import { renderMath } from '../utils/math'
 import { diffColor } from '../utils/ui'
+
+const route = useRoute()
 
 // 阶段: setup | practicing | result
 const phase = ref('setup')
@@ -48,12 +51,14 @@ async function loadKps() {
   }
 }
 
-async function startPractice() {
+async function startPractice(questionId = null) {
   error.value = ''
   submitting.value = true
   try {
-    const payload = { mode: mode.value, count: count.value }
-    if (mode.value === 'kp') payload.kpId = selectedKp.value
+    const payload = questionId
+      ? { mode: 'QUESTION', questionId, count: 1 }
+      : { mode: mode.value, count: count.value }
+    if (!questionId && mode.value === 'kp') payload.kpId = selectedKp.value
     questions.value = await api.startSession(payload)
     currentIdx.value = 0
     answers.value = {}
@@ -225,7 +230,14 @@ function reset() {
   resetAi()
 }
 
-onMounted(() => { loadKps(); loadQuota() })
+onMounted(async () => {
+  await loadKps()
+  loadQuota()
+  const questionId = Number(route.query.questionId)
+  if (Number.isFinite(questionId) && questionId > 0) {
+    await startPractice(questionId)
+  }
+})
 onUnmounted(() => {
   stopTimer()
   if (aiAbort) aiAbort.abort()
@@ -293,7 +305,7 @@ onUnmounted(() => {
         </div>
 
         <button
-          @click="startPractice"
+          @click="startPractice()"
           class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition"
         >开始练习</button>
       </div>

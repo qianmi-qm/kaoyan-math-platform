@@ -11,6 +11,7 @@ import com.kaoyan.platform.ai.vo.PhotoSearchResult;
 import com.kaoyan.platform.common.result.PageVO;
 import com.kaoyan.platform.common.result.Result;
 import com.kaoyan.platform.common.support.CurrentUser;
+import com.kaoyan.platform.question.vo.QuestionVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
@@ -91,6 +92,14 @@ public class AiController {
                                                              @RequestBody PhotoFavoriteRequest request) {
         return Result.ok(photoHistoryService.favorite(
                 currentUser.getUserId(), id, request.isFavorite()));
+    }
+
+    @Operation(summary = "拍照搜题同类题")
+    @GetMapping("/photo-history/{id}/similar")
+    public Result<java.util.List<QuestionVO>> similarPhotoQuestions(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "4") int limit) {
+        return Result.ok(photoHistoryService.similar(currentUser.getUserId(), id, limit));
     }
 
     @Operation(summary = "删除搜题记录")

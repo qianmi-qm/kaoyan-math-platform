@@ -13,6 +13,8 @@ const loading = ref(false)
 const quota = ref(null)
 const dragging = ref(false)
 const favoriteLoading = ref(false)
+const similar = ref([])
+const similarLoading = ref(false)
 
 async function loadQuota() {
   try {
@@ -80,6 +82,9 @@ async function search() {
     const compressed = await compressImage(sourceFile.value)
     result.value = await api.photoSearch(compressed)
     await loadQuota()
+    if (result.value.recordId) {
+      loadSimilar(result.value.recordId)
+    }
   } catch (e) {
     error.value = e.message || '搜题失败'
   } finally {
@@ -100,6 +105,18 @@ async function toggleFavorite() {
   }
 }
 
+async function loadSimilar(recordId) {
+  similar.value = []
+  similarLoading.value = true
+  try {
+    similar.value = await api.photoSimilar(recordId, 4)
+  } catch {
+    similar.value = []
+  } finally {
+    similarLoading.value = false
+  }
+}
+
 function reset() {
   result.value = null
   error.value = ''
@@ -108,6 +125,7 @@ function reset() {
   preview.value = ''
   if (cameraInput.value) cameraInput.value.value = ''
   if (galleryInput.value) galleryInput.value.value = ''
+  similar.value = []
 }
 
 onMounted(loadQuota)
@@ -250,6 +268,28 @@ onBeforeUnmount(() => {
               <div v-for="w in result.warnings" :key="w">⚠ {{ w }}</div>
             </div>
           </template>
+        </div>
+      </div>
+
+      <div v-if="result.recordId" class="app-card p-5 sm:p-6">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-semibold text-slate-800">练一道同类题</div>
+            <div class="mt-1 text-xs text-slate-400">按识别出的知识点从题库匹配</div>
+          </div>
+          <span v-if="similarLoading" class="text-xs text-slate-400">匹配中…</span>
+        </div>
+        <div v-if="similar.length" class="grid gap-2">
+          <div v-for="q in similar" :key="q.id" class="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
+            <div class="min-w-0 text-sm leading-7 text-slate-700" v-html="renderMath(q.content)"></div>
+            <RouterLink
+              :to="{ path: '/practice', query: { questionId: q.id } }"
+              class="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-indigo-600 ring-1 ring-indigo-100 hover:bg-indigo-50"
+            >练这道</RouterLink>
+          </div>
+        </div>
+        <div v-else-if="!similarLoading" class="rounded-xl border border-dashed border-slate-200 p-4 text-xs text-slate-400">
+          题库里还没有同类题，去题库编辑补一道吧。
         </div>
       </div>
 

@@ -12,6 +12,8 @@ const loading = ref(false)
 const error = ref('')
 const selected = ref(null)
 const pendingId = ref(null)
+const similar = ref([])
+const similarLoading = ref(false)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size)))
 
@@ -46,7 +48,26 @@ async function load(resetPage = false) {
 function switchTab(next) {
   tab.value = next
   selected.value = null
+  similar.value = []
   load(true)
+}
+
+async function openRecord(record) {
+  if (selected.value?.id === record.id) {
+    selected.value = null
+    similar.value = []
+    return
+  }
+  selected.value = record
+  similar.value = []
+  similarLoading.value = true
+  try {
+    similar.value = await api.photoSimilar(record.id, 4)
+  } catch {
+    similar.value = []
+  } finally {
+    similarLoading.value = false
+  }
 }
 
 async function toggleFavorite(record) {
@@ -132,7 +153,7 @@ onMounted(load)
         class="app-card overflow-hidden transition hover:border-indigo-200"
       >
         <div class="flex items-start gap-3 p-5">
-          <button class="min-w-0 flex-1 text-left" @click="selected = selected?.id === record.id ? null : record">
+          <button class="min-w-0 flex-1 text-left" @click="openRecord(record)">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <span class="chip bg-slate-100 text-slate-500">{{ formatDate(record.createdAt) }}</span>
               <span v-if="record.confidence" class="chip bg-emerald-50 text-emerald-600">置信度 {{ Math.round(record.confidence * 100) }}%</span>
@@ -177,6 +198,23 @@ onMounted(load)
             </div>
             <div v-if="record.warnings?.length" class="rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
               <div v-for="w in record.warnings" :key="w">⚠ {{ w }}</div>
+            </div>
+
+            <div class="border-t border-slate-200/70 pt-4">
+              <div class="mb-3 flex items-center justify-between">
+                <div class="text-xs font-semibold text-slate-600">练一道同类题</div>
+                <span v-if="similarLoading" class="text-[11px] text-slate-400">匹配中…</span>
+              </div>
+              <div v-if="similar.length" class="grid gap-2 sm:grid-cols-2">
+                <div v-for="q in similar" :key="q.id" class="flex flex-col justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3">
+                  <div class="line-clamp-2 text-xs leading-6 text-slate-600" v-html="renderMath(q.content)"></div>
+                  <RouterLink
+                    :to="{ path: '/practice', query: { questionId: q.id } }"
+                    class="self-start rounded-lg bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-600 hover:bg-indigo-100"
+                  >练这道 →</RouterLink>
+                </div>
+              </div>
+              <div v-else-if="!similarLoading" class="text-xs text-slate-400">题库里还没有同类题。</div>
             </div>
           </div>
         </div>

@@ -109,6 +109,7 @@ export default {  // v3 认证
   photoHistoryDetail: (id) => http.get(`/ai/photo-history/${id}`),
   photoFavorite: (id, favorite) => http.patch(`/ai/photo-history/${id}/favorite`, { favorite }),
   photoHistoryDelete: (id) => http.delete(`/ai/photo-history/${id}`),
+  photoSimilar: (id, limit = 4) => http.get(`/ai/photo-history/${id}/similar`, { params: { limit } }),
   adminUsers: () => http.get('/admin/users'),
   updateUserRole: (id, role) => http.patch(`/admin/users/${id}/role`, { role }),
   questionDetail: (id) => http.get(`/questions/${id}`),

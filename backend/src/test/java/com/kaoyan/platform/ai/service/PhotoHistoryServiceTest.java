@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaoyan.platform.ai.entity.PhotoSearchRecord;
 import com.kaoyan.platform.ai.mapper.PhotoSearchRecordMapper;
 import com.kaoyan.platform.common.exception.BusinessException;
+import com.kaoyan.platform.question.service.QuestionService;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,12 +25,14 @@ class PhotoHistoryServiceTest {
 
     @Mock
     private PhotoSearchRecordMapper mapper;
+    @Mock
+    private QuestionService questionService;
 
     private PhotoHistoryService service;
 
     @BeforeEach
     void setUp() {
-        service = new PhotoHistoryService(mapper, new ObjectMapper());
+        service = new PhotoHistoryService(mapper, questionService, new ObjectMapper());
     }
 
     @Test

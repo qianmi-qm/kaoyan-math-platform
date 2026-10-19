@@ -239,6 +239,29 @@ public class QuestionServiceImpl implements QuestionService {
         return toVO(question, true);
     }
 
+    @Override
+    public List<QuestionVO> similar(List<String> kpNames, int limit) {
+        int safeLimit = Math.min(8, Math.max(1, limit));
+        List<Question> picked = new ArrayList<>();
+        Set<Long> ids = new LinkedHashSet<>();
+        if (kpNames != null) {
+            for (String name : kpNames) {
+                if (name == null || name.isBlank()) continue;
+                KnowledgePoint kp = knowledgePointMapper.selectByName(name.trim());
+                if (kp == null) continue;
+                for (Question question : questionMapper.selectRandomByKp(kp.getId(), null, safeLimit)) {
+                    if (ids.add(question.getId())) picked.add(question);
+                    if (picked.size() >= safeLimit) break;
+                }
+                if (picked.size() >= safeLimit) break;
+            }
+        }
+        if (picked.isEmpty()) {
+            picked = questionMapper.selectRandomByKp(null, null, safeLimit);
+        }
+        return picked.stream().map(q -> toVO(q, false)).toList();
+    }
+
     /**
      * 单题补知识点（详情场景）；列表场景走 page() 里的批量查询，避免 N+1。
      */

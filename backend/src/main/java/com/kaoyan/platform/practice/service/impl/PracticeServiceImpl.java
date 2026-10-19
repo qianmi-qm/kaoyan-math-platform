@@ -96,6 +96,16 @@ public class PracticeServiceImpl implements PracticeService {
             }
             case "RANDOM" -> questionMapper.selectRandomByKp(null, userId, dto.getCount());
             case "WRONG" -> questionMapper.selectWrongQuestions(userId, dto.getCount());
+            case "QUESTION" -> {
+                if (dto.getQuestionId() == null) {
+                    throw new BusinessException(ErrorCode.PARAM_ERROR, "mode=QUESTION 时 questionId 必填");
+                }
+                Question question = questionMapper.selectById(dto.getQuestionId());
+                if (question == null) {
+                    throw new BusinessException(ErrorCode.NOT_FOUND, "题目不存在");
+                }
+                yield List.of(question);
+            }
             default -> throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的选题方式：" + dto.getMode());
         };
     }

@@ -30,4 +30,7 @@ public interface QuestionService {
 
     /** 详情：带答案与解析，供复盘/自评场景 */
     QuestionVO detail(Long id);
+
+    /** 拍照搜题同类题：按知识点名找题，找不到则随机兜底 */
+    java.util.List<QuestionVO> similar(java.util.List<String> kpNames, int limit);
 }
