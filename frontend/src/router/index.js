@@ -3,6 +3,9 @@ import { isAdmin, isLoggedIn } from '../auth'
 
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior(to, from, savedPosition) {
+    return savedPosition || { top: 0 }
+  },
   routes: [
     { path: '/', redirect: '/bank' },
     { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true } },

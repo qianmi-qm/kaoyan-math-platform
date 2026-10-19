@@ -24,10 +24,10 @@
           useGeneratedKeys="true" keyProperty="id">
     INSERT INTO photo_search_record
       (user_id, content, options_json, answer, steps_json, knowledge_points_json,
-       confidence, warnings_json, model)
+       confidence, warnings_json, model, favorite)
     VALUES
       (#{userId}, #{content}, #{optionsJson}, #{answer}, #{stepsJson}, #{knowledgePointsJson},
-       #{confidence}, #{warningsJson}, #{model})
+       #{confidence}, #{warningsJson}, #{model}, #{favorite})
   </insert>
 
   <select id="selectByIdAndUser" resultMap="recordMap">

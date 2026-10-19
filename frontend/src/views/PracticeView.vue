@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import api from '../api'
 import { authHeaders, clearAuth, isMockMode } from '../auth'
 import { renderMath } from '../utils/math'
@@ -141,6 +141,12 @@ function resetAi() {
   }
 }
 
+function renderAiText(text) {
+  return renderMath(text)
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+}
+
 async function loadQuota() {
   try {
     aiQuota.value = await api.aiQuota()
@@ -237,6 +243,11 @@ onMounted(async () => {
   if (Number.isFinite(questionId) && questionId > 0) {
     await startPractice(questionId)
   }
+})
+
+onBeforeRouteLeave(() => {
+  if (phase.value !== 'practicing' || allSubmitted.value) return true
+  return window.confirm('本组练习还没完成，确定离开？已提交的记录会保留。')
 })
 onUnmounted(() => {
   stopTimer()
@@ -438,7 +449,7 @@ onUnmounted(() => {
           <div v-if="aiLoading || aiText || aiError" class="p-4 bg-violet-50/60 rounded-lg border border-violet-200">
             <div class="text-sm font-medium text-violet-700 mb-2">AI 讲解</div>
             <div v-if="aiError" class="text-sm text-rose-600">{{ aiError }}</div>
-            <div v-if="aiText" class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{{ aiText }}</div>
+            <div v-if="aiText" class="text-sm text-slate-700 leading-relaxed" v-html="renderAiText(aiText)"></div>
             <div v-else-if="aiLoading" class="text-sm text-slate-500">正在生成…</div>
           </div>
         </div>

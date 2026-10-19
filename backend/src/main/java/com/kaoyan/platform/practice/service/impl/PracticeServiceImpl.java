@@ -8,6 +8,7 @@ import com.kaoyan.platform.practice.dto.SubmitAnswerDTO;
 import com.kaoyan.platform.practice.entity.PracticeRecord;
 import com.kaoyan.platform.practice.mapper.PracticeRecordMapper;
 import com.kaoyan.platform.practice.service.PracticeService;
+import com.kaoyan.platform.practice.support.AnswerMatcher;
 import com.kaoyan.platform.practice.vo.PracticeRecordVO;
 import com.kaoyan.platform.question.entity.KnowledgePoint;
 import com.kaoyan.platform.question.entity.Question;
@@ -139,7 +140,7 @@ public class PracticeServiceImpl implements PracticeService {
             // 大题：selfEval 为空表示"先提交占位答案，稍后两步自评"
             correct = dto.getSelfEval();
         } else {
-            correct = normalize(dto.getAnswer()).equals(normalize(question.getAnswer()));
+            correct = AnswerMatcher.matches(question.getAnswer(), dto.getAnswer());
         }
         record.setIsCorrect(correct);
         int updated = practiceRecordMapper.updateSubmit(record);
@@ -203,10 +204,6 @@ public class PracticeServiceImpl implements PracticeService {
             vos.add(toVO(record, questionById.get(record.getQuestionId()), withAnswer, kpContext));
         }
         return vos;
-    }
-
-    private static String normalize(String answer) {
-        return answer == null ? "" : answer.trim().toLowerCase(Locale.ROOT);
     }
 
     private PracticeRecordVO toVO(PracticeRecord record, Question question, boolean withAnswer) {

@@ -13,6 +13,7 @@ const loading = ref(false)
 const quota = ref(null)
 const dragging = ref(false)
 const favoriteLoading = ref(false)
+const saving = ref(false)
 const similar = ref([])
 const similarLoading = ref(false)
 
@@ -82,13 +83,36 @@ async function search() {
     const compressed = await compressImage(sourceFile.value)
     result.value = await api.photoSearch(compressed)
     await loadQuota()
-    if (result.value.recordId) {
-      loadSimilar(result.value.recordId)
-    }
   } catch (e) {
     error.value = e.message || '搜题失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function saveResult(favorite) {
+  if (!result.value || saving.value) return
+  error.value = ''
+  saving.value = true
+  try {
+    const saved = await api.savePhotoHistory({
+      content: result.value.content,
+      options: result.value.options,
+      answer: result.value.answer,
+      steps: result.value.steps,
+      knowledgePoints: result.value.knowledgePoints,
+      confidence: result.value.confidence,
+      warnings: result.value.warnings,
+      model: result.value.model,
+      favorite,
+    })
+    result.value.recordId = saved.id
+    result.value.favorite = saved.favorite
+    loadSimilar(saved.id)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    saving.value = false
   }
 }
 
@@ -236,9 +260,7 @@ onBeforeUnmount(() => {
             <div v-if="result.content" class="text-[17px] leading-8 text-slate-800" v-html="renderMath(result.content)"></div>
 
             <div v-if="result.options?.length" class="grid gap-2 sm:grid-cols-2">
-              <div v-for="(opt, i) in result.options" :key="i" class="rounded-xl border border-slate-100 bg-slate-50/70 px-3.5 py-2.5 text-sm text-slate-700">
-                {{ opt }}
-              </div>
+              <div v-for="(opt, i) in result.options" :key="i" class="rounded-xl border border-slate-100 bg-slate-50/70 px-3.5 py-2.5 text-sm text-slate-700" v-html="renderMath(opt)"></div>
             </div>
 
             <div v-if="result.answer" class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 p-5 text-white shadow-lg shadow-indigo-500/20">
@@ -294,7 +316,13 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="flex flex-wrap gap-2">
-        <button class="btn-primary" @click="reset">再拍一题</button>
+        <template v-if="result.recognized && !result.recordId">
+          <button class="btn-primary" :disabled="saving" @click="saveResult(true)">
+            {{ saving ? '保存中…' : '保存到错题本' }}
+          </button>
+          <button class="btn-secondary" :disabled="saving" @click="saveResult(false)">仅保存历史</button>
+        </template>
+        <button v-else class="btn-primary" @click="reset">再拍一题</button>
         <button
           v-if="result.recordId"
           class="btn-secondary"

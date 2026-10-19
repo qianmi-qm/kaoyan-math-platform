@@ -19,7 +19,7 @@ async function submit() {
   loading.value = true
   try {
     await api.forgotPassword({ email: email.value.trim() })
-    message.value = '如果邮箱存在，重置链接已发送；本地未配 SMTP 时会打印在 backend 日志。'
+    message.value = '如果该邮箱已注册，重置链接已发送，请查收。'
   } catch (e) {
     error.value = e.message
   } finally {

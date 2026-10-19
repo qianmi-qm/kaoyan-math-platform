@@ -28,7 +28,7 @@ async function saveEmail() {
   try {
     await api.updateEmail({ email: email.value.trim() })
     updateUser({ email: email.value.trim(), emailVerified: false })
-    emailSuccess.value = '验证邮件已发送；本地未配 SMTP 时会打印在 backend 日志'
+    emailSuccess.value = '验证邮件已发送，请查收'
   } catch (e) {
     emailError.value = e.message
   } finally {

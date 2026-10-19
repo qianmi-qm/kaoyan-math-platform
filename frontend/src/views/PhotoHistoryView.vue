@@ -181,7 +181,7 @@ onMounted(load)
           <div class="space-y-4">
             <div class="text-[15px] leading-8 text-slate-800" v-html="renderMath(record.content)"></div>
             <div v-if="record.options?.length" class="grid gap-2 sm:grid-cols-2">
-              <div v-for="(opt, i) in record.options" :key="i" class="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-600">{{ opt }}</div>
+              <div v-for="(opt, i) in record.options" :key="i" class="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-600" v-html="renderMath(opt)"></div>
             </div>
             <div v-if="record.answer" class="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
               <div class="text-[11px] font-medium uppercase tracking-[0.16em] text-indigo-400">Answer</div>

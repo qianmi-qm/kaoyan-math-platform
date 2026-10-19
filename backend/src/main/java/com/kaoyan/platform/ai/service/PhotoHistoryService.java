@@ -2,6 +2,7 @@ package com.kaoyan.platform.ai.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kaoyan.platform.ai.dto.PhotoSearchSaveRequest;
 import com.kaoyan.platform.ai.entity.PhotoSearchRecord;
 import com.kaoyan.platform.ai.mapper.PhotoSearchRecordMapper;
 import com.kaoyan.platform.ai.vo.PhotoSearchRecordVO;
@@ -30,8 +31,7 @@ public class PhotoHistoryService {
         this.objectMapper = objectMapper;
     }
 
-    public PageVO<PhotoSearchRecordVO> list(Long userId, Boolean favorite, int page, int size) {
-        int safePage = Math.max(1, page);
+    public PageVO<PhotoSearchRecordVO> list(Long userId, Boolean favorite, int page, int size) {        int safePage = Math.max(1, page);
         int safeSize = Math.min(MAX_PAGE_SIZE, Math.max(1, size));
         List<PhotoSearchRecordVO> list = mapper.selectPage(userId, favorite,
                         (safePage - 1) * safeSize, safeSize)
@@ -54,6 +54,26 @@ public class PhotoHistoryService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "搜题记录不存在");
         }
         return toVO(require(userId, id));
+    }
+
+    /** 用户确认后再落库，避免识别错误直接污染错题本。 */
+    public PhotoSearchRecordVO save(Long userId, PhotoSearchSaveRequest request) {
+        if (request == null || request.getContent() == null || request.getContent().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "识别结果为空，不能保存");
+        }
+        PhotoSearchRecord record = new PhotoSearchRecord();
+        record.setUserId(userId);
+        record.setContent(request.getContent());
+        record.setOptionsJson(write(request.getOptions()));
+        record.setAnswer(request.getAnswer());
+        record.setStepsJson(write(request.getSteps()));
+        record.setKnowledgePointsJson(write(request.getKnowledgePoints()));
+        record.setConfidence(request.getConfidence());
+        record.setWarningsJson(write(request.getWarnings()));
+        record.setModel(request.getModel());
+        record.setFavorite(request.isFavorite());
+        mapper.insert(record);
+        return toVO(require(userId, record.getId()));
     }
 
     public List<QuestionVO> similar(Long userId, Long id, int limit) {
@@ -93,6 +113,14 @@ public class PhotoHistoryService {
             return objectMapper.readValue(json, new TypeReference<List<String>>() { });
         } catch (Exception e) {
             return List.of();
+        }
+    }
+
+    private String write(List<String> values) {
+        try {
+            return objectMapper.writeValueAsString(values == null ? List.of() : values);
+        } catch (Exception e) {
+            return "[]";
         }
     }
 }

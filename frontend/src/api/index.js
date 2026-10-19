@@ -106,6 +106,7 @@ export default {  // v3 认证
     return http.post('/ai/photo-search', form, { timeout: 120000 })
   },
   photoHistory: (params) => http.get('/ai/photo-history', { params }),
+  savePhotoHistory: (payload) => http.post('/ai/photo-history', payload),
   photoHistoryDetail: (id) => http.get(`/ai/photo-history/${id}`),
   photoFavorite: (id, favorite) => http.patch(`/ai/photo-history/${id}/favorite`, { favorite }),
   photoHistoryDelete: (id) => http.delete(`/ai/photo-history/${id}`),

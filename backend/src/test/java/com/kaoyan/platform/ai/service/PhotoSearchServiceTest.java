@@ -5,7 +5,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaoyan.platform.ai.config.AiProperties;
-import com.kaoyan.platform.ai.mapper.PhotoSearchRecordMapper;
 import com.kaoyan.platform.common.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,8 +21,6 @@ class PhotoSearchServiceTest {
     @Mock
     private AiQuotaService quotaService;
     @Mock
-    private PhotoSearchRecordMapper recordMapper;
-    @Mock
     private WebClient.Builder webClientBuilder;
 
     private PhotoSearchService service;
@@ -34,7 +31,7 @@ class PhotoSearchServiceTest {
         properties = new AiProperties();
         properties.setVisionApiKey("");
         properties.setVisionBaseUrl("https://api.example.com/v1");
-        service = new PhotoSearchService(properties, quotaService, recordMapper,
+        service = new PhotoSearchService(properties, quotaService,
                 new ObjectMapper(), webClientBuilder);
     }
 

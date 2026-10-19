@@ -148,7 +148,13 @@ onMounted(() => { loadKps(); loadQuestions() })
             <span class="chip bg-slate-100 text-slate-600">{{ q.typeLabel }}</span>
             <span v-for="name in q.kpNames" :key="name" class="text-[11px] text-slate-400">#{{ name }}</span>
           </div>
-          <span class="font-mono text-[11px] text-slate-300">#{{ q.id }}</span>
+          <div class="flex items-center gap-3">
+            <RouterLink
+              :to="{ path: '/practice', query: { questionId: q.id } }"
+              class="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
+            >练这道</RouterLink>
+            <span class="font-mono text-[11px] text-slate-300">#{{ q.id }}</span>
+          </div>
         </div>
         <div class="text-[15px] leading-8 text-slate-800" v-html="renderMath(q.content)"></div>
         <div v-if="q.options" class="mt-4 grid gap-2 sm:grid-cols-2">

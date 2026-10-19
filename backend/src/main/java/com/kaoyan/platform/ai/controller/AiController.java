@@ -1,6 +1,7 @@
 package com.kaoyan.platform.ai.controller;
 
 import com.kaoyan.platform.ai.dto.PhotoFavoriteRequest;
+import com.kaoyan.platform.ai.dto.PhotoSearchSaveRequest;
 import com.kaoyan.platform.ai.service.AiExplanationService;
 import com.kaoyan.platform.ai.service.AiQuotaService;
 import com.kaoyan.platform.ai.service.PhotoHistoryService;
@@ -73,11 +74,16 @@ public class AiController {
 
     @Operation(summary = "拍照搜题历史")
     @GetMapping("/photo-history")
-    public Result<PageVO<PhotoSearchRecordVO>> photoHistory(
-            @RequestParam(required = false) Boolean favorite,
+    public Result<PageVO<PhotoSearchRecordVO>> photoHistory(            @RequestParam(required = false) Boolean favorite,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return Result.ok(photoHistoryService.list(currentUser.getUserId(), favorite, page, size));
+    }
+
+    @Operation(summary = "保存拍照搜题结果（用户确认后）")
+    @PostMapping("/photo-history")
+    public Result<PhotoSearchRecordVO> savePhotoHistory(@RequestBody PhotoSearchSaveRequest request) {
+        return Result.ok(photoHistoryService.save(currentUser.getUserId(), request));
     }
 
     @Operation(summary = "拍照搜题历史详情")
