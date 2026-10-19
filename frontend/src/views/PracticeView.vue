@@ -44,7 +44,7 @@ const correctCount = computed(() => {
 async function loadKps() {
   try {
     kpList.value = await api.listKnowledgePoints()
-    const leaf = kpList.value.find(k => k.level === 2) || kpList.value[0]
+    const leaf = kpList.value.find(k => !(k.children && k.children.length)) || kpList.value[0]
     if (leaf) selectedKp.value = leaf.id
   } catch (e) {
     error.value = e.message
@@ -288,7 +288,7 @@ onUnmounted(() => {
             v-model="selectedKp"
             class="w-full md:w-80 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
           >
-            <option v-for="kp in kpList.filter(k => k.level === 2)" :key="kp.id" :value="kp.id">
+            <option v-for="kp in kpList.filter(k => !(k.children && k.children.length))" :key="kp.id" :value="kp.id">
               {{ kp.name }}
             </option>
           </select>

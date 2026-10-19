@@ -93,13 +93,9 @@ onMounted(() => { loadKps(); loadQuestions() })
             class="input-field min-w-48 appearance-none pr-9"
           >
             <option value="">全部知识点</option>
-            <optgroup v-for="parent in kpList.filter(k => k.level === 1)" :key="parent.id" :label="parent.name">
-              <option
-                v-for="child in kpList.filter(k => k.parentId === parent.id)"
-                :key="child.id"
-                :value="child.id"
-              >{{ child.name }}</option>
-            </optgroup>
+            <option v-for="kp in kpList" :key="kp.id" :value="kp.id">
+              {{ kp.level === 1 ? kp.name : '　' + kp.name }}
+            </option>
           </select>
           <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">⌄</span>
         </div>
