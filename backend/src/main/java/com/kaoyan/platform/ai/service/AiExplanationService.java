@@ -132,6 +132,7 @@ public class AiExplanationService {
                                SseEmitter emitter) {
         StringBuilder answer = new StringBuilder();
         AtomicBoolean finished = new AtomicBoolean(false);
+        AtomicBoolean refunded = new AtomicBoolean(false);
         String model = properties.getModel();
 
         Map<String, Object> body = new HashMap<>();
@@ -163,6 +164,7 @@ public class AiExplanationService {
                                 quotaService.addTokens(userId, estimateTokens(prompt, answer.toString()));
                                 finish(emitter);
                             } else {
+                                refundQuota(userId, refunded);
                                 streamText(fallback, emitter);
                             }
                         }
@@ -180,6 +182,7 @@ public class AiExplanationService {
                     }
                     log.warn("LLM 流式调用失败：{}", error.getMessage());
                     if (answer.length() == 0) {
+                        refundQuota(userId, refunded);
                         streamText(fallback, emitter);
                     } else {
                         send(emitter, "\n\n（AI 中断，先看参考解析）\n" + fallback);
@@ -194,6 +197,7 @@ public class AiExplanationService {
                         quotaService.addTokens(userId, estimateTokens(prompt, answer.toString()));
                         finish(emitter);
                     } else {
+                        refundQuota(userId, refunded);
                         streamText(fallback, emitter);
                     }
                 });
@@ -260,6 +264,12 @@ public class AiExplanationService {
             aiExplanationMapper.upsert(explanation);
         } catch (Exception e) {
             log.warn("AI 讲解落库失败：{}", e.getMessage());
+        }
+    }
+
+    private void refundQuota(Long userId, AtomicBoolean refunded) {
+        if (refunded.compareAndSet(false, true)) {
+            quotaService.refund(userId);
         }
     }
 

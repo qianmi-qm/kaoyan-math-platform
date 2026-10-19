@@ -22,4 +22,6 @@ public interface AiUsageMapper {
     int addTokens(@Param("userId") Long userId,
                   @Param("date") LocalDate date,
                   @Param("tokens") int tokens);
+
+    int refund(@Param("userId") Long userId, @Param("date") LocalDate date);
 }

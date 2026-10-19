@@ -31,4 +31,10 @@
     ON DUPLICATE KEY UPDATE
       token_estimate = ai_usage.token_estimate + incoming.token_estimate
   </insert>
+
+  <update id="refund">
+    UPDATE ai_usage
+    SET request_count = GREATEST(request_count - 1, 0)
+    WHERE user_id = #{userId} AND usage_date = #{date}
+  </update>
 </mapper>

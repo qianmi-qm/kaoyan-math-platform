@@ -3,6 +3,7 @@ package com.kaoyan.platform.auth.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +60,21 @@ class AdminUserInitializerTest {
         initializer.run(null);
 
         verify(userMapper).updatePasswordAndRole(9L, "hash", "ADMIN");
+    }
+
+    @Test
+    @DisplayName("管理员引导：已有密码不被 env 覆盖")
+    void keepsExistingAdminPassword() {
+        User existing = new User();
+        existing.setId(9L);
+        existing.setUsername("ops_admin");
+        existing.setRole("ADMIN");
+        existing.setPasswordHash("existing-hash");
+        when(userMapper.selectByUsername("ops_admin")).thenReturn(existing);
+
+        initializer.run(null);
+
+        verify(userMapper, never()).updatePasswordAndRole(any(), any(), any());
     }
 
     @Test

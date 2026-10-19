@@ -57,5 +57,8 @@ class AiQuotaServiceTest {
 
         service.addTokens(1L, 100);
         verify(usageMapper).addTokens(1L, today, 100);
+
+        service.refund(1L);
+        verify(usageMapper).refund(1L, today);
     }
 }

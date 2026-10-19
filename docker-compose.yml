@@ -62,6 +62,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_REQUIRED: ${ADMIN_REQUIRED:-true}
+      ADMIN_PASSWORD_FORCE: ${ADMIN_PASSWORD_FORCE:-false}
     ports:
       # 只绑定本机，Swagger/调试用；公网流量走 Nginx，避免直连 backend 伪造 IP 头
       - "127.0.0.1:8080:8080"

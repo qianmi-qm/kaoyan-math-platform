@@ -43,6 +43,11 @@ public class AiQuotaService {
         }
     }
 
+    /** 模型调用失败、没有产出讲解时退款 */
+    public void refund(Long userId) {
+        usageMapper.refund(userId, LocalDate.now(clock));
+    }
+
     public int getDailyQuota() {
         return dailyQuota;
     }

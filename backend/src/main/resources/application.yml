@@ -45,6 +45,7 @@ app:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:}
     required: ${ADMIN_REQUIRED:true}
+    force-password: ${ADMIN_PASSWORD_FORCE:false}
   cache:
     report:
       enabled: ${REPORT_CACHE_ENABLED:true}

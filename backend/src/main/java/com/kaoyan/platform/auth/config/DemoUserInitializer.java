@@ -53,8 +53,12 @@ public class DemoUserInitializer implements ApplicationRunner {
             throw new IllegalStateException(
                     "DEMO_USER_ENABLED=true 时必须设置 DEMO_USER_PASSWORD，且不能使用默认密码");
         }
-        userMapper.updatePasswordHash(1L, passwordEncoder.encode(password));
+        if (!StringUtils.hasText(user.getPasswordHash())) {
+            userMapper.updatePasswordHash(1L, passwordEncoder.encode(password));
+            log.info("demo user learner 密码已初始化（ADMIN）");
+        } else {
+            log.info("demo user learner 已存在，保留页面修改后的密码");
+        }
         userMapper.updateRole(1L, "ADMIN");
-        log.info("demo user learner 已启用（ADMIN，密码来自 DEMO_USER_PASSWORD）");
     }
 }
