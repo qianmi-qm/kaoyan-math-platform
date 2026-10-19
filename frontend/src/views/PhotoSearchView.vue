@@ -12,6 +12,7 @@ const error = ref('')
 const loading = ref(false)
 const quota = ref(null)
 const dragging = ref(false)
+const favoriteLoading = ref(false)
 
 async function loadQuota() {
   try {
@@ -86,6 +87,19 @@ async function search() {
   }
 }
 
+async function toggleFavorite() {
+  if (!result.value?.recordId || favoriteLoading.value) return
+  favoriteLoading.value = true
+  try {
+    const updated = await api.photoFavorite(result.value.recordId, !result.value.favorite)
+    result.value.favorite = updated.favorite
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
 function reset() {
   result.value = null
   error.value = ''
@@ -110,9 +124,12 @@ onBeforeUnmount(() => {
         <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">拍照搜题</h1>
         <p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">拍下题目，识别题干与公式，给出答案和分步解析。图片只用于本次识别，不会写入题库。</p>
       </div>
-      <div v-if="quota" class="chip bg-white text-slate-500 ring-1 ring-slate-200">
-        <span class="mr-1 h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-        今日 AI 剩余 {{ quota.remaining }} 次
+      <div class="flex flex-wrap items-center gap-2">
+        <div v-if="quota" class="chip bg-white text-slate-500 ring-1 ring-slate-200">
+          <span class="mr-1 h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          今日 AI 剩余 {{ quota.remaining }} 次
+        </div>
+        <RouterLink to="/photo/history" class="btn-secondary">搜题历史</RouterLink>
       </div>
     </header>
 
@@ -238,6 +255,13 @@ onBeforeUnmount(() => {
 
       <div class="flex flex-wrap gap-2">
         <button class="btn-primary" @click="reset">再拍一题</button>
+        <button
+          v-if="result.recordId"
+          class="btn-secondary"
+          :disabled="favoriteLoading"
+          @click="toggleFavorite"
+        >{{ result.favorite ? '★ 已收藏' : '☆ 收藏到错题本' }}</button>
+        <RouterLink to="/photo/history" class="btn-secondary">查看搜题历史</RouterLink>
         <RouterLink to="/bank" class="btn-secondary">去题库练习</RouterLink>
       </div>
     </section>

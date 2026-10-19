@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.ai.mapper.PhotoSearchRecordMapper">
+
+  <resultMap id="recordMap" type="com.kaoyan.platform.ai.entity.PhotoSearchRecord">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="content" column="content"/>
+    <result property="optionsJson" column="options_json"/>
+    <result property="answer" column="answer"/>
+    <result property="stepsJson" column="steps_json"/>
+    <result property="knowledgePointsJson" column="knowledge_points_json"/>
+    <result property="confidence" column="confidence"/>
+    <result property="warningsJson" column="warnings_json"/>
+    <result property="model" column="model"/>
+    <result property="favorite" column="favorite"/>
+    <result property="createdAt" column="created_at"/>
+  </resultMap>
+
+  <sql id="cols">id, user_id, content, options_json, answer, steps_json,
+    knowledge_points_json, confidence, warnings_json, model, favorite, created_at</sql>
+
+  <insert id="insert" parameterType="com.kaoyan.platform.ai.entity.PhotoSearchRecord"
+          useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO photo_search_record
+      (user_id, content, options_json, answer, steps_json, knowledge_points_json,
+       confidence, warnings_json, model)
+    VALUES
+      (#{userId}, #{content}, #{optionsJson}, #{answer}, #{stepsJson}, #{knowledgePointsJson},
+       #{confidence}, #{warningsJson}, #{model})
+  </insert>
+
+  <select id="selectByIdAndUser" resultMap="recordMap">
+    SELECT <include refid="cols"/>
+    FROM photo_search_record
+    WHERE id = #{id} AND user_id = #{userId}
+  </select>
+
+  <select id="selectPage" resultMap="recordMap">
+    SELECT <include refid="cols"/>
+    FROM photo_search_record
+    WHERE user_id = #{userId}
+    <if test="favorite != null">
+      AND favorite = #{favorite}
+    </if>
+    ORDER BY id DESC
+    LIMIT #{size} OFFSET #{offset}
+  </select>
+
+  <select id="count" resultType="long">
+    SELECT COUNT(*)
+    FROM photo_search_record
+    WHERE user_id = #{userId}
+    <if test="favorite != null">
+      AND favorite = #{favorite}
+    </if>
+  </select>
+
+  <update id="updateFavorite">
+    UPDATE photo_search_record
+    SET favorite = #{favorite}
+    WHERE id = #{id} AND user_id = #{userId}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM photo_search_record
+    WHERE id = #{id} AND user_id = #{userId}
+  </delete>
+</mapper>

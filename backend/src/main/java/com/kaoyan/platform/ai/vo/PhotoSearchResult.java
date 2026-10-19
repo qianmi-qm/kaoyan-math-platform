@@ -22,4 +22,6 @@ public class PhotoSearchResult {
     private List<String> warnings;
     private String model;
     private int quotaRemaining;
+    private Long recordId;
+    private boolean favorite;
 }

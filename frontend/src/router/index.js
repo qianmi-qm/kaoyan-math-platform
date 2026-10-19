@@ -11,6 +11,7 @@ const router = createRouter({
     { path: '/verify-email', component: () => import('../views/VerifyEmailView.vue'), meta: { public: true } },
     { path: '/bank', component: () => import('../views/QuestionBankView.vue') },
     { path: '/photo', component: () => import('../views/PhotoSearchView.vue') },
+    { path: '/photo/history', component: () => import('../views/PhotoHistoryView.vue') },
     { path: '/practice', component: () => import('../views/PracticeView.vue') },
     { path: '/report', component: () => import('../views/ReportView.vue') },
     { path: '/review', component: () => import('../views/ReviewView.vue') },

@@ -35,6 +35,7 @@ public class V2SchemaMigration implements ApplicationRunner {
             migrateAnswerHash();
         }
         createAiUsageTable();
+        createPhotoSearchTable();
     }
 
     private void addSubmittedAnswerColumn() {
@@ -87,6 +88,32 @@ public class V2SchemaMigration implements ApplicationRunner {
                     """);
         } catch (DataAccessException e) {
             log.warn("v2 migration: 创建 ai_usage 失败：{}", e.getMessage());
+        }
+    }
+
+    private void createPhotoSearchTable() {
+        try {
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS photo_search_record (
+                      id                    BIGINT PRIMARY KEY AUTO_INCREMENT,
+                      user_id               BIGINT NOT NULL,
+                      content               MEDIUMTEXT NOT NULL,
+                      options_json          TEXT NULL,
+                      answer                MEDIUMTEXT NULL,
+                      steps_json            MEDIUMTEXT NULL,
+                      knowledge_points_json VARCHAR(2000) NULL,
+                      confidence            DECIMAL(3,2) NULL,
+                      warnings_json         VARCHAR(2000) NULL,
+                      model                 VARCHAR(64) NULL,
+                      favorite              TINYINT(1) NOT NULL DEFAULT 0,
+                      created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                      KEY idx_user_created (user_id, created_at),
+                      KEY idx_user_favorite (user_id, favorite)
+                    ) ENGINE = InnoDB COMMENT '拍照搜题历史（只存识别文本，不存原图）'
+                    """);
+            log.info("v2 migration: photo_search_record 已创建");
+        } catch (DataAccessException e) {
+            log.warn("v2 migration: 创建 photo_search_record 失败：{}", e.getMessage());
         }
     }
 

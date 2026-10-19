@@ -132,6 +132,23 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   KEY idx_date (usage_date)
 ) ENGINE = InnoDB COMMENT 'AI 每日用量（配额 + 成本估算）';
 
+CREATE TABLE IF NOT EXISTS photo_search_record (
+  id                     BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id                BIGINT NOT NULL,
+  content                MEDIUMTEXT NOT NULL,
+  options_json           TEXT NULL,
+  answer                 MEDIUMTEXT NULL,
+  steps_json             MEDIUMTEXT NULL,
+  knowledge_points_json  VARCHAR(2000) NULL,
+  confidence             DECIMAL(3,2) NULL,
+  warnings_json          VARCHAR(2000) NULL,
+  model                  VARCHAR(64) NULL,
+  favorite               TINYINT(1) NOT NULL DEFAULT 0,
+  created_at             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_user_created (user_id, created_at),
+  KEY idx_user_favorite (user_id, favorite)
+) ENGINE = InnoDB COMMENT '拍照搜题历史（只存识别文本，不存原图）';
+
 -- ---------- 初始数据 ----------
 INSERT IGNORE INTO `user` (id, username) VALUES (1, 'learner');
 INSERT IGNORE INTO knowledge_point (id, name, parent_id) VALUES

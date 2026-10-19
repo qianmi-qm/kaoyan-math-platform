@@ -105,6 +105,10 @@ export default {  // v3 认证
     form.append('file', file)
     return http.post('/ai/photo-search', form, { timeout: 120000 })
   },
+  photoHistory: (params) => http.get('/ai/photo-history', { params }),
+  photoHistoryDetail: (id) => http.get(`/ai/photo-history/${id}`),
+  photoFavorite: (id, favorite) => http.patch(`/ai/photo-history/${id}/favorite`, { favorite }),
+  photoHistoryDelete: (id) => http.delete(`/ai/photo-history/${id}`),
   adminUsers: () => http.get('/admin/users'),
   updateUserRole: (id, role) => http.patch(`/admin/users/${id}/role`, { role }),
   questionDetail: (id) => http.get(`/questions/${id}`),

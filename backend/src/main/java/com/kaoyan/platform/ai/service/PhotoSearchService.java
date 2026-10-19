@@ -3,6 +3,8 @@ package com.kaoyan.platform.ai.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaoyan.platform.ai.config.AiProperties;
+import com.kaoyan.platform.ai.entity.PhotoSearchRecord;
+import com.kaoyan.platform.ai.mapper.PhotoSearchRecordMapper;
 import com.kaoyan.platform.ai.vo.PhotoSearchResult;
 import com.kaoyan.platform.common.exception.BusinessException;
 import com.kaoyan.platform.common.result.ErrorCode;
@@ -36,13 +38,16 @@ public class PhotoSearchService {
 
     private final AiProperties properties;
     private final AiQuotaService quotaService;
+    private final PhotoSearchRecordMapper recordMapper;
     private final ObjectMapper objectMapper;
     private final WebClient.Builder webClientBuilder;
 
     public PhotoSearchService(AiProperties properties, AiQuotaService quotaService,
-                              ObjectMapper objectMapper, WebClient.Builder webClientBuilder) {
+                              PhotoSearchRecordMapper recordMapper, ObjectMapper objectMapper,
+                              WebClient.Builder webClientBuilder) {
         this.properties = properties;
         this.quotaService = quotaService;
+        this.recordMapper = recordMapper;
         this.objectMapper = objectMapper;
         this.webClientBuilder = webClientBuilder;
     }
@@ -84,6 +89,7 @@ public class PhotoSearchService {
             quotaService.addTokens(userId, tokens);
             PhotoSearchResult result = parse(response, model);
             result.setQuotaRemaining(quotaService.quota(userId).getRemaining());
+            save(userId, result);
             return result;
         } catch (BusinessException e) {
             quotaService.refund(userId);
@@ -127,6 +133,33 @@ public class PhotoSearchService {
                             Math.min(300, e.getResponseBodyAsString().length())));
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "视觉模型调用失败");
         }
+    }
+
+    private void save(Long userId, PhotoSearchResult result) {
+        if (!result.isRecognized() || !StringUtils.hasText(result.getContent())) {
+            return;
+        }
+        try {
+            PhotoSearchRecord record = new PhotoSearchRecord();
+            record.setUserId(userId);
+            record.setContent(result.getContent());
+            record.setOptionsJson(write(result.getOptions()));
+            record.setAnswer(result.getAnswer());
+            record.setStepsJson(write(result.getSteps()));
+            record.setKnowledgePointsJson(write(result.getKnowledgePoints()));
+            record.setConfidence(result.getConfidence());
+            record.setWarningsJson(write(result.getWarnings()));
+            record.setModel(result.getModel());
+            recordMapper.insert(record);
+            result.setRecordId(record.getId());
+        } catch (Exception e) {
+            // 历史落库失败不影响本次识别结果
+            log.warn("拍照搜题历史保存失败：{}", e.getMessage());
+        }
+    }
+
+    private String write(List<String> values) throws Exception {
+        return objectMapper.writeValueAsString(values == null ? List.of() : values);
     }
 
     private PhotoSearchResult parse(JsonNode response, String model) throws Exception {
