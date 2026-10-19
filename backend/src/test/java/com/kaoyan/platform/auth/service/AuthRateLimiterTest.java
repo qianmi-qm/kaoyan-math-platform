@@ -32,6 +32,18 @@ class AuthRateLimiterTest {
     }
 
     @Test
+    @DisplayName("登录：同一 IP 累计 30 次失败后，换用户名也会被限流")
+    void loginLocksPerIpAcrossUsernames() {
+        for (int i = 0; i < 30; i++) {
+            limiter.onLoginFailure("user" + i, "10.0.0.9");
+        }
+        BusinessException e = assertThrows(BusinessException.class,
+                () -> limiter.checkLogin("another_user", "10.0.0.9"));
+        assertEquals(ErrorCode.TOO_MANY_REQUESTS, e.getErrorCode());
+        assertDoesNotThrow(() -> limiter.checkLogin("another_user", "10.0.0.10"));
+    }
+
+    @Test
     @DisplayName("注册：同一 IP 每小时最多 10 次")
     void registerLocksPerIp() {
         for (int i = 0; i < 10; i++) {

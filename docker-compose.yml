@@ -57,8 +57,12 @@ services:
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
       DEMO_USER_ENABLED: ${DEMO_USER_ENABLED:-false}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_REQUIRED: ${ADMIN_REQUIRED:-false}
     ports:
-      - "8080:8080"
+      # 只绑定本机，Swagger/调试用；公网流量走 Nginx，避免直连 backend 伪造 IP 头
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || exit 1"]
       interval: 5s

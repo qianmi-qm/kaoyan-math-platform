@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 
 /**
- * 单实例内存限流：登录按 username+IP 失败计数，注册按 IP 计数。
+ * 单实例内存限流：登录按 username+IP 和 IP 两个维度，注册按 IP。
  * 多实例部署时应换成 Redis 计数器；这里先堵住单机暴力破解和批量注册。
  */
 @Component
@@ -18,11 +18,15 @@ public class AuthRateLimiter {
 
     static final int LOGIN_MAX_FAILURES = 5;
     static final Duration LOGIN_WINDOW = Duration.ofMinutes(5);
+    static final int LOGIN_IP_MAX_FAILURES = 30;
     static final int REGISTER_MAX = 10;
     static final Duration REGISTER_WINDOW = Duration.ofHours(1);
+    private static final long CLEANUP_EVERY = 256;
 
     private final Clock clock;
     private final Map<String, Counter> counters = new ConcurrentHashMap<>();
+    private final java.util.concurrent.atomic.AtomicLong operations =
+            new java.util.concurrent.atomic.AtomicLong();
 
     public AuthRateLimiter(Clock clock) {
         this.clock = clock;
@@ -30,10 +34,12 @@ public class AuthRateLimiter {
 
     public void checkLogin(String username, String ip) {
         check("login:" + username.toLowerCase() + ":" + ip, LOGIN_MAX_FAILURES, LOGIN_WINDOW);
+        check("login-ip:" + ip, LOGIN_IP_MAX_FAILURES, LOGIN_WINDOW);
     }
 
     public void onLoginFailure(String username, String ip) {
         increment("login:" + username.toLowerCase() + ":" + ip, LOGIN_WINDOW);
+        increment("login-ip:" + ip, LOGIN_WINDOW);
     }
 
     public void onLoginSuccess(String username, String ip) {
@@ -49,6 +55,7 @@ public class AuthRateLimiter {
     }
 
     private void check(String key, int max, Duration window) {
+        cleanupIfNeeded();
         Counter counter = counters.computeIfAbsent(key, ignored -> new Counter(clock.instant()));
         synchronized (counter) {
             resetIfExpired(counter, window);
@@ -60,11 +67,21 @@ public class AuthRateLimiter {
     }
 
     private void increment(String key, Duration window) {
+        cleanupIfNeeded();
         Counter counter = counters.computeIfAbsent(key, ignored -> new Counter(clock.instant()));
         synchronized (counter) {
             resetIfExpired(counter, window);
             counter.count++;
         }
+    }
+
+    private void cleanupIfNeeded() {
+        if (operations.incrementAndGet() % CLEANUP_EVERY != 0) {
+            return;
+        }
+        Instant now = clock.instant();
+        counters.entrySet().removeIf(entry ->
+                Duration.between(entry.getValue().start, now).compareTo(REGISTER_WINDOW) >= 0);
     }
 
     private void resetIfExpired(Counter counter, Duration window) {
