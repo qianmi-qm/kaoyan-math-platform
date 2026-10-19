@@ -48,6 +48,7 @@ public class AiExplanationService {
     private final QuestionMapper questionMapper;
     private final KnowledgePointMapper knowledgePointMapper;
     private final AiExplanationMapper aiExplanationMapper;
+    private final AiQuotaService quotaService;
     private final AiProperties properties;
     private final CurrentUser currentUser;
     private final ObjectMapper objectMapper;
@@ -62,6 +63,7 @@ public class AiExplanationService {
                                 QuestionMapper questionMapper,
                                 KnowledgePointMapper knowledgePointMapper,
                                 AiExplanationMapper aiExplanationMapper,
+                                AiQuotaService quotaService,
                                 AiProperties properties,
                                 CurrentUser currentUser,
                                 ObjectMapper objectMapper,
@@ -70,6 +72,7 @@ public class AiExplanationService {
         this.questionMapper = questionMapper;
         this.knowledgePointMapper = knowledgePointMapper;
         this.aiExplanationMapper = aiExplanationMapper;
+        this.quotaService = quotaService;
         this.properties = properties;
         this.currentUser = currentUser;
         this.objectMapper = objectMapper;
@@ -112,7 +115,12 @@ public class AiExplanationService {
                 streamText(fallback, emitter);
                 return;
             }
-            streamFromLlm(buildPrompt(record, question), fallback, record, question, answerHash, emitter);
+            if (!quotaService.tryConsume(userId)) {
+                sendError(emitter, "今日 AI 讲解次数已用完");
+                return;
+            }
+            streamFromLlm(buildPrompt(record, question), fallback, record, question,
+                    answerHash, userId, emitter);
         } catch (Exception e) {
             log.error("AI 讲解失败", e);
             sendError(emitter, "AI 讲解暂时不可用");
@@ -120,7 +128,8 @@ public class AiExplanationService {
     }
 
     private void streamFromLlm(String prompt, String fallback, PracticeRecord record,
-                               Question question, String answerHash, SseEmitter emitter) {
+                               Question question, String answerHash, Long userId,
+                               SseEmitter emitter) {
         StringBuilder answer = new StringBuilder();
         AtomicBoolean finished = new AtomicBoolean(false);
         String model = properties.getModel();
@@ -151,6 +160,7 @@ public class AiExplanationService {
                         if (finished.compareAndSet(false, true)) {
                             if (answer.length() > 0) {
                                 save(record, question, answerHash, answer.toString(), model);
+                                quotaService.addTokens(userId, estimateTokens(prompt, answer.toString()));
                                 finish(emitter);
                             } else {
                                 streamText(fallback, emitter);
@@ -181,6 +191,7 @@ public class AiExplanationService {
                     }
                     if (answer.length() > 0) {
                         save(record, question, answerHash, answer.toString(), model);
+                        quotaService.addTokens(userId, estimateTokens(prompt, answer.toString()));
                         finish(emitter);
                     } else {
                         streamText(fallback, emitter);
@@ -250,6 +261,10 @@ public class AiExplanationService {
         } catch (Exception e) {
             log.warn("AI 讲解落库失败：{}", e.getMessage());
         }
+    }
+
+    private int estimateTokens(String prompt, String answer) {
+        return Math.max(1, (prompt.length() + answer.length()) / 4);
     }
 
     private void streamText(String text, SseEmitter emitter) {

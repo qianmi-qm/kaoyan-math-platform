@@ -106,6 +106,16 @@ CREATE TABLE IF NOT EXISTS ai_explanation (
   KEY idx_question (question_id)
 ) ENGINE = InnoDB COMMENT 'AI 错题讲解（同一用户同一题同一答案复用，控制 token）';
 
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id        BIGINT NOT NULL,
+  usage_date     DATE NOT NULL,
+  request_count  INT NOT NULL DEFAULT 0,
+  token_estimate INT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_user_date (user_id, usage_date),
+  KEY idx_date (usage_date)
+) ENGINE = InnoDB COMMENT 'AI 每日用量（配额 + 成本估算）';
+
 -- ---------- 初始数据 ----------
 INSERT IGNORE INTO `user` (id, username) VALUES (1, 'learner');
 INSERT IGNORE INTO knowledge_point (id, name, parent_id) VALUES

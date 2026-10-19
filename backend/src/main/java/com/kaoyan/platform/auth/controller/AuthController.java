@@ -1,6 +1,7 @@
 package com.kaoyan.platform.auth.controller;
 
 import com.kaoyan.platform.auth.dto.AuthResponse;
+import com.kaoyan.platform.auth.dto.ChangePasswordRequest;
 import com.kaoyan.platform.auth.dto.LoginRequest;
 import com.kaoyan.platform.auth.dto.RefreshRequest;
 import com.kaoyan.platform.auth.dto.RegisterRequest;
@@ -58,6 +59,13 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout() {
         authService.logout();
+        return Result.ok();
+    }
+
+    @Operation(summary = "修改密码：成功后旧 token 全部失效")
+    @PostMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
         return Result.ok();
     }
 

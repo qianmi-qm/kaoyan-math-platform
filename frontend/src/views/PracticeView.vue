@@ -24,6 +24,7 @@ let timerHandle = null
 const aiText = ref('')
 const aiError = ref('')
 const aiLoading = ref(false)
+const aiQuota = ref(null)
 let aiAbort = null
 
 const currentQ = computed(() => questions.value[currentIdx.value] || null)
@@ -135,6 +136,14 @@ function resetAi() {
   }
 }
 
+async function loadQuota() {
+  try {
+    aiQuota.value = await api.aiQuota()
+  } catch {
+    aiQuota.value = null
+  }
+}
+
 async function explainWithAi(recordId) {
   resetAi()
   aiLoading.value = true
@@ -200,6 +209,7 @@ async function explainWithAi(recordId) {
     }
   } finally {
     aiLoading.value = false
+    loadQuota()
   }
 }
 
@@ -215,7 +225,7 @@ function reset() {
   resetAi()
 }
 
-onMounted(() => { loadKps() })
+onMounted(() => { loadKps(); loadQuota() })
 onUnmounted(() => {
   stopTimer()
   if (aiAbort) aiAbort.abort()
@@ -396,7 +406,10 @@ onUnmounted(() => {
             <div class="text-sm text-slate-600 leading-relaxed" v-html="renderMath(results[currentQ.recordId].analysis)"></div>
           </div>
 
-          <div v-if="results[currentQ.recordId].isCorrect === false && !isMockMode()" class="flex justify-end">
+          <div v-if="results[currentQ.recordId].isCorrect === false && !isMockMode()" class="flex items-center justify-end gap-3">
+            <span v-if="aiQuota" class="mr-auto text-xs text-slate-400">
+              今日 AI 剩余 {{ aiQuota.remaining }} 次
+            </span>
             <button
               @click="explainWithAi(currentQ.recordId)"
               :disabled="aiLoading"

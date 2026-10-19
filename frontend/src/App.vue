@@ -11,7 +11,8 @@ const navs = [
   { to: '/bank', label: '题库' },
   { to: '/practice', label: '练习' },
   { to: '/report', label: '每日报告' },
-  { to: '/review', label: '今日复习' }
+  { to: '/review', label: '今日复习' },
+  { to: '/account', label: '账号' }
 ]
 
 const isLoginPage = computed(() => route.path === '/login')

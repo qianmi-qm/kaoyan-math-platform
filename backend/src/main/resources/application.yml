@@ -58,3 +58,4 @@ app:
     model: ${AI_MODEL:deepseek-chat}
     timeout-seconds: 60
     max-context-chars: 4000
+    daily-quota: ${AI_DAILY_QUOTA:20}

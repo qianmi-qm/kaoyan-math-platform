@@ -53,6 +53,7 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com/v1}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      AI_DAILY_QUOTA: ${AI_DAILY_QUOTA:-20}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (at least 32 random bytes)}
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-2}
       JWT_REFRESH_DAYS: ${JWT_REFRESH_DAYS:-7}

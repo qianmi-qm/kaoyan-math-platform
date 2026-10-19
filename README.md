@@ -1,6 +1,6 @@
 # 考研高等数学学习平台（v3）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员权限、token 刷新/撤销与 Redis 限流**；44 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员权限、token 刷新/撤销、Redis 限流、AI 每日配额与修改密码**；49 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
 > 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)。
 
@@ -14,18 +14,19 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
-| `mvn test` | 44/44 通过 |
+| `mvn test` | 49/49 通过 |
 | v1 业务链路（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
 | v3 认证 / 多用户 | 登录、注册、401、user_id 隔离通过 |
 | v3 权限 | 普通用户题库写接口/详情 403；管理员可导入 |
 | v3 限流 | 同一账号+IP 5 次错误 → 429；同 IP 30 次跨账号错误 → 429（Redis 计数） |
 | v3 管理员引导 | ADMIN_USERNAME / ADMIN_PASSWORD 可独立创建/提升管理员 |
 | v3 token | access 2h + refresh 7d，刷新轮换，登出/改密递增 token_version 撤销旧 token |
+| v3 AI 配额 | 每用户每日 20 次真实模型调用，Redis/MySQL 记录用量；缓存与降级不扣 |
 | Redis 报告缓存 | 命中 / 提交后失效 / Redis 宕机降级通过 |
 | AI 错题讲解 | SSE 首调 / 二次读库 / 无 key 降级通过 |
 | Docker Compose | 四容器 `up`（3307 / 8080 / 5173；Redis 内部） |
 
-红灯不是缺陷，是完成定义——现在 44 个测试已经全部转绿。
+红灯不是缺陷，是完成定义——现在 49 个测试已经全部转绿。
 
 ## 验证记录（2026-10-19）
 
@@ -33,11 +34,13 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 
 | 项 | 结果 |
 |----|------|
-| 单元测试 | 44/44 通过 |
+| 单元测试 | 49/49 通过 |
 | v3 认证 | 无 token 401；learner + 本地配置密码登录 200；错密码 401 |
 | v3 权限 | bob（USER）创建/导入题目 403；learner（ADMIN）可管理；详情接口仅 ADMIN |
 | v3 限流 | 同一账号+IP 5 次密码错误后第 6 次 429；跨账号同 IP 30 次也 429 |
 | v3 token | refresh 轮换成功；旧 access/旧 refresh 均 401；logout 后 access 401 |
+| v3 AI 配额 | mock 一次调用后 used=1、token_estimate>0；无 key 降级不扣配额 |
+| v3 密码 | 修改密码后旧 token 401、旧密码 401、新密码 200 |
 | v3 多用户 | learner 日报 total=1；新用户 alice 日报 total=0、练习记录 0 |
 | v3 前端 | 登录页渲染；表单登录后跳 `/bank`；未登录访问 `/bank` 跳 `/login` |
 | L1 知识点树 | 3 个根节点 / 6 个知识点 |
@@ -116,7 +119,7 @@ docker compose up -d --build
 ```bash
 cd backend
 mvn compile        # 编译
-mvn test           # 44 个验收测试全绿
+mvn test           # 49 个验收测试全绿
 ```
 
 ## 目录结构
@@ -133,9 +136,9 @@ backend/
     review/      # 复习模块 + EbbinghausScheduler 调度算法（L5）
     ai/          # v2：错题 AI 讲解（SSE + 落库 + 降级）
   src/main/resources/
-    db/schema.sql        # 8 张表 DDL + 初始数据
+    db/schema.sql        # 9 张表 DDL + 初始数据
     mapper/*.xml         # MyBatis SQL
-  src/test/java/         # 验收测试：44 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3 安全）
+  src/test/java/         # 验收测试：49 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3 安全/配额）
 frontend/
   src/views/     # 五页面（登录/题库/练习/报告/复习）
   src/auth.js    # token 持久化 / 登录态 / mock 模式

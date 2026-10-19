@@ -82,6 +82,8 @@ export default {  // v3 认证
   register: (payload) => http.post('/auth/register', payload),
   me: () => http.get('/auth/me'),
   logout: () => http.post('/auth/logout'),
+  changePassword: (payload) => http.post('/auth/password', payload),
+  aiQuota: () => http.get('/ai/quota'),
 
   // L2 题库
   listQuestions: (params) => http.get('/questions', { params }).then(normalizeQuestionPage),

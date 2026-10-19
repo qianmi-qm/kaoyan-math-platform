@@ -31,9 +31,10 @@ public class V2SchemaMigration implements ApplicationRunner {
         addSubmittedAnswerColumn();
         if (!tableExists("ai_explanation")) {
             createAiExplanationTable();
-            return;
+        } else {
+            migrateAnswerHash();
         }
-        migrateAnswerHash();
+        createAiUsageTable();
     }
 
     private void addSubmittedAnswerColumn() {
@@ -68,6 +69,24 @@ public class V2SchemaMigration implements ApplicationRunner {
             log.info("v2 migration: ai_explanation 已创建");
         } catch (DataAccessException e) {
             log.warn("v2 migration: 创建 ai_explanation 失败：{}", e.getMessage());
+        }
+    }
+
+    private void createAiUsageTable() {
+        try {
+            jdbc.execute("""
+                    CREATE TABLE IF NOT EXISTS ai_usage (
+                      id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+                      user_id        BIGINT NOT NULL,
+                      usage_date     DATE NOT NULL,
+                      request_count  INT NOT NULL DEFAULT 0,
+                      token_estimate INT NOT NULL DEFAULT 0,
+                      UNIQUE KEY uk_user_date (user_id, usage_date),
+                      KEY idx_date (usage_date)
+                    ) ENGINE = InnoDB COMMENT 'AI 每日用量（配额 + 成本估算）'
+                    """);
+        } catch (DataAccessException e) {
+            log.warn("v2 migration: 创建 ai_usage 失败：{}", e.getMessage());
         }
     }
 

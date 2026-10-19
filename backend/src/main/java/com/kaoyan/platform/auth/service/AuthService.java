@@ -1,6 +1,7 @@
 package com.kaoyan.platform.auth.service;
 
 import com.kaoyan.platform.auth.dto.AuthResponse;
+import com.kaoyan.platform.auth.dto.ChangePasswordRequest;
 import com.kaoyan.platform.auth.dto.LoginRequest;
 import com.kaoyan.platform.auth.dto.RefreshRequest;
 import com.kaoyan.platform.auth.dto.RegisterRequest;
@@ -99,6 +100,15 @@ public class AuthService {
         userMapper.bumpTokenVersion(user.getId());
         user.setTokenVersion(version + 1);
         return buildResponse(user);
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+        User user = userMapper.selectById(currentUser.getUserId());
+        if (user == null || !StringUtils.hasText(user.getPasswordHash())
+                || !passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "原密码错误");
+        }
+        userMapper.updatePasswordHash(user.getId(), passwordEncoder.encode(request.getNewPassword()));
     }
 
     private AuthResponse buildResponse(User user) {

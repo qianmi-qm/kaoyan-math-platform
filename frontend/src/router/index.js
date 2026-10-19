@@ -10,6 +10,7 @@ const router = createRouter({
     { path: '/practice', component: () => import('../views/PracticeView.vue') },
     { path: '/report', component: () => import('../views/ReportView.vue') },
     { path: '/review', component: () => import('../views/ReviewView.vue') },
+    { path: '/account', component: () => import('../views/AccountView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/bank' },
   ],
 })
