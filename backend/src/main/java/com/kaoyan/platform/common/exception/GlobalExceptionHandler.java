@@ -23,6 +23,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleBusiness(BusinessException e) {
         HttpStatus status = switch (e.getErrorCode()) {
             case PARAM_ERROR -> HttpStatus.BAD_REQUEST;
+            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
+            case FORBIDDEN -> HttpStatus.FORBIDDEN;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
             case NOT_IMPLEMENTED -> HttpStatus.NOT_IMPLEMENTED;

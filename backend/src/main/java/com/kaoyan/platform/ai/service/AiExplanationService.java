@@ -77,14 +77,15 @@ public class AiExplanationService {
     }
 
     public void stream(Long recordId, SseEmitter emitter) {
+        // 在请求线程取当前用户；SecurityContext 默认不会传播到 ai-explain 线程池
+        Long userId = currentUser.getUserId();
         emitter.onTimeout(emitter::complete);
         emitter.onError(error -> emitter.complete());
-        executor.submit(() -> doStream(recordId, emitter));
+        executor.submit(() -> doStream(recordId, userId, emitter));
     }
 
-    private void doStream(Long recordId, SseEmitter emitter) {
+    private void doStream(Long recordId, Long userId, SseEmitter emitter) {
         try {
-            Long userId = currentUser.getUserId();
             PracticeRecord record = practiceRecordMapper.selectById(recordId);
             if (record == null || !record.getUserId().equals(userId)) {
                 sendError(emitter, "做题记录不存在");

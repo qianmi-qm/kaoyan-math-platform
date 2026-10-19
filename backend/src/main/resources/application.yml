@@ -31,8 +31,14 @@ springdoc:
     operations-sorter: order
 
 app:
-  # v1 单用户设计：所有查询默认绑定该用户；多用户时替换为登录上下文（见 README 决策点）
-  default-user-id: 1
+  jwt:
+    # 生产必须用环境变量覆盖；至少 32 字节
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-0123456789abcdef0123456789abcdef}
+    expire-hours: ${JWT_EXPIRE_HOURS:24}
+  demo-user:
+    # 本地演示账号 learner / learner123；生产设 DEMO_USER_ENABLED=false
+    enabled: ${DEMO_USER_ENABLED:true}
+    password: ${DEMO_USER_PASSWORD:learner123}
   cache:
     report:
       enabled: ${REPORT_CACHE_ENABLED:true}

@@ -1,8 +1,8 @@
-# 考研高等数学学习平台（v2）
+# 考研高等数学学习平台（v3）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1（题库 / 练习 / 日报 / 艾宾浩斯复习）基础上加入 **Redis 报告缓存** 与 **AI 错题 SSE 讲解**；27 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证与多用户隔离**；32 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
-> 版本说明：`v1.1.0-interview` 是面试稳定版；当前 `v2` 分支是技术产品化版本，仍保持单用户。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 设计/联调见 [`docs/V2.md`](docs/V2.md)，v2 面试/产品包装见 [`docs/V2_PACKAGING.md`](docs/V2_PACKAGING.md)。
+> 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)。
 
 配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 
@@ -14,21 +14,25 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1�
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
-| `mvn test` | 27/27 通过 |
+| `mvn test` | 32/32 通过 |
 | v1 业务链路（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
+| v3 认证 / 多用户 | 登录、注册、401、user_id 隔离通过 |
 | Redis 报告缓存 | 命中 / 提交后失效 / Redis 宕机降级通过 |
 | AI 错题讲解 | SSE 首调 / 二次读库 / 无 key 降级通过 |
 | Docker Compose | 四容器 `up`（3307 / 8080 / 5173；Redis 内部） |
 
-红灯不是缺陷，是完成定义——现在 27 个测试已经全部转绿。
+红灯不是缺陷，是完成定义——现在 32 个测试已经全部转绿。
 
-## 验证记录（2026-10-18）
+## 验证记录（2026-10-19）
 
 完整命令与返回见 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。摘要：
 
 | 项 | 结果 |
 |----|------|
-| 单元测试 | 27/27 通过 |
+| 单元测试 | 32/32 通过 |
+| v3 认证 | 无 token 401；learner/learner123 登录 200；错密码 401 |
+| v3 多用户 | learner 日报 total=1；新用户 alice 日报 total=0、练习记录 0 |
+| v3 前端 | 登录页渲染；表单登录后跳 `/bank`；未登录访问 `/bank` 跳 `/login` |
 | L1 知识点树 | 3 个根节点 / 6 个知识点 |
 | L2 题库 | 手动录入 4 题；Excel 导入 3 行 → 2 入库 + 1 重复；重复导入 0 入库 + 3 重复 |
 | L3 练习 | 4 条记录，服务端计时 2～3s，判分与自评正常 |
@@ -42,7 +46,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v2 在 v1�
 
 ## 怎么学（六步闭环）
 
-L1～L5 已完成，下表保留作为 v1 复习参考；v2 的 Redis/AI 增量见 [`docs/V2.md`](docs/V2.md)。
+L1～L5 已完成，下表保留作为 v1 复习参考；v2 的 Redis/AI 增量见 [`docs/V2.md`](docs/V2.md)，v3 认证见 [`docs/V3.md`](docs/V3.md)。
 
 对每一层：读契约（接口 javadoc / 测试）→ 合卷实现 → 跑测试验收 → 与 AI 生成的参考实现对比 → 记决策日志。
 
@@ -68,13 +72,14 @@ docker compose up -d --build
 # 后端 http://localhost:8080  Swagger http://localhost:8080/swagger-ui.html
 # Redis 只在 compose 内部使用（6379，不映射宿主）
 # MySQL 默认映射宿主 3306（root/root）；公网/共享环境建议：
-#   cp .env.example .env && 修改 MYSQL_ROOT_PASSWORD
+#   cp .env.example .env && 修改 MYSQL_ROOT_PASSWORD / JWT_SECRET / DEMO_USER_PASSWORD
+# 本地演示账号：learner / learner123（启动时自动初始化；生产设 DEMO_USER_ENABLED=false）
 # AI 讲解可选：在 .env 填 AI_API_KEY；不填则自动降级为参考解析
 # 本机 3306 已被占用时（常见）：
 #   MYSQL_PORT=3307 docker compose up -d --build
 # schema 变更后需要重建数据库卷（会清空数据）：
 #   docker compose down -v && docker compose up -d --build
-# 注意：v2.0.1 的 answer_hash 升级已内置启动迁移，不需要为它清库
+# 注意：v2 answer_hash 与 v3 password_hash 都已内置启动迁移，通常不需要清库
 
 # 构建需要代理时（可选）：把 HTTP_PROXY / HTTPS_PROXY / MAVEN_OPTS 作为 build args 传入，
 # 其中 Maven 还需要 MAVEN_OPTS 里的 -Dhttps.proxyHost / -Dhttps.proxyPort。
@@ -84,8 +89,10 @@ docker compose up -d --build
 
 1. 准备 JDK 17+、Maven、Node 18+、MySQL 8；v2 还需要 Redis 7（没有 Redis 时缓存自动降级）
 2. 建库：`mysql -uroot -p < backend/src/main/resources/db/schema.sql`
-3. 后端：`cd backend && mvn spring-boot:run`（AI key 通过 `AI_API_KEY` 环境变量传入）
+3. 后端：`cd backend && mvn spring-boot:run`（`JWT_SECRET`、`AI_API_KEY` 通过环境变量传入）
 4. 前端：`cd frontend && npm install && npm run dev`（已配 /api 代理到 8080）
+
+启动后先访问 `/login`，演示账号 `learner / learner123`；也可以注册新用户。
 
 ### 前端 Mock 模式（不启动后端也能体验完整界面）
 
@@ -98,7 +105,7 @@ docker compose up -d --build
 ```bash
 cd backend
 mvn compile        # 编译
-mvn test           # 27 个验收测试全绿
+mvn test           # 32 个验收测试全绿
 ```
 
 ## 目录结构
@@ -106,7 +113,9 @@ mvn test           # 27 个验收测试全绿
 ```
 backend/
   src/main/java/com/kaoyan/platform/
-    common/      # Result 统一响应 / 全局异常 / Clock / 当前用户（已实现，可读可测）
+    common/      # Result 统一响应 / 全局异常 / Clock / CurrentUser / 启动迁移
+    auth/        # v3：JWT / Spring Security / 登录注册
+    user/        # v3：用户实体与 UserMapper
     question/    # 题库模块（L1/L2）
     practice/    # 练习模块（L3）
     report/      # 报告模块 + MasteryCalculator + Redis 缓存（L4/v2）
@@ -115,10 +124,11 @@ backend/
   src/main/resources/
     db/schema.sql        # 8 张表 DDL + 初始数据
     mapper/*.xml         # MyBatis SQL
-  src/test/java/         # 验收测试：27 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习服务 + v2 缓存/指纹）
+  src/test/java/         # 验收测试：32 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3）
 frontend/
-  src/views/     # 四页面（题库/练习/报告/复习，已实现）
-  src/api/       # 请求封装 + 后端/mock 字段统一适配（normalize.js）
+  src/views/     # 五页面（登录/题库/练习/报告/复习）
+  src/auth.js    # token 持久化 / 登录态 / mock 模式
+  src/api/       # 请求封装 + 401 拦截 + 后端/mock 字段统一适配
   src/mock/      # 前端 mock 数据层（无后端演示用）
   scripts/       # contract-check.mjs：真实接口字段契约检查
   src/utils/     # math.js 公式渲染 / ui.js 公共样式映射
@@ -127,6 +137,7 @@ docs/VERIFICATION.md     # v1 联调与压测记录
 docs/INTERVIEW.md        # v1 面试版：演示脚本 / 追问 / 简历 bullet
 docs/V2.md               # v2：Redis 缓存 + AI SSE 设计/联调记录
 docs/V2_PACKAGING.md     # v2：面试/产品两用包装
+docs/V3.md               # v3：认证 / 多用户 / JWT 设计与验收
 docker-compose.yml       # mysql + redis + backend + frontend 一键启动
 ```
 
@@ -142,3 +153,6 @@ docker-compose.yml       # mysql + redis + backend + frontend 一键启动
 - 为什么用 SSE 不用 WebSocket？——AI 讲解是单向推送，SSE 基于 HTTP、断线重连简单。
 - AI 讲解怎么控 token？——成功后按 `(user_id, question_id, answer_hash)` 落库复用，prompt 截断，二次查看不再调模型。
 - 没有 AI key 会怎样？——降级为参考解析 + 正确答案，HTTP 200，不阻塞练习流程。
+- v3 为什么用 JWT + 无状态 Session？——前端是 SPA，JWT 放 Authorization 头；服务端不存 session，扩容不用粘性会话。
+- 多用户怎么保证隔离？——`CurrentUser` 从 SecurityContext 取 `user_id`，所有练习/报告/复习查询都带 user_id；测试里 learner 有 1 条、alice 为 0。
+- SSE 为什么在异步线程拿不到登录用户？——SecurityContext 默认不跨线程；在请求线程取 userId 再传入 `ai-explain` 线程池，异步 dispatch 放行 ASYNC。

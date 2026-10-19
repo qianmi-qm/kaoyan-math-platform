@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { authState, clearAuth } from '../auth'
 import {
   flattenKnowledgePoints,
   normalizeImportResult,
@@ -12,6 +13,13 @@ import {
 
 export const http = axios.create({ baseURL: '/api', timeout: 15000 })
 
+http.interceptors.request.use((config) => {
+  if (authState.token) {
+    config.headers.Authorization = `Bearer ${authState.token}`
+  }
+  return config
+})
+
 // 统一剥壳：后端 Result{code,message,data} → 直接返回 data；非 0 或 HTTP 错误统一抛 Error
 http.interceptors.response.use(
   (resp) => {
@@ -23,13 +31,24 @@ http.interceptors.response.use(
   },
   (error) => {
     const body = error.response?.data
+    if (error.response?.status === 401) {
+      clearAuth()
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login')
+      }
+    }
     const message = body?.message
       || (error.code === 'ECONNABORTED' ? '请求超时，请稍后重试' : '网络异常，请稍后重试')
     return Promise.reject(new Error(message))
   },
 )
 
-export default {  // L2 题库
+export default {  // v3 认证
+  login: (payload) => http.post('/auth/login', payload),
+  register: (payload) => http.post('/auth/register', payload),
+  me: () => http.get('/auth/me'),
+
+  // L2 题库
   listQuestions: (params) => http.get('/questions', { params }).then(normalizeQuestionPage),
   importExcel: (formData) =>
     http.post('/questions/import', formData, {

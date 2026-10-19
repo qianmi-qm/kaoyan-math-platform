@@ -32,3 +32,8 @@
 | 2026-10-18 | v2.0.1 迁移 | 启动时 `V2SchemaMigration` 幂等补齐 | Flyway / 清库重建 | 旧库自动加 `answer_hash`、回填、换索引，不丢数据；后续规模大了再上 Flyway |
 | 2026-10-18 | v2 AI 降级 | 无 key/超时/报错返回解析文本 | 直接 500 | 练习流程不能被外部模型阻塞；页面必须有内容 |
 | 2026-10-18 | v2 单用户 | 继续固定 user_id，不做认证 | v2 一并上账号体系 | 先验证 AI/缓存技术链路；认证留到产品阶段，避免一次改动过大 |
+| 2026-10-19 | v3 认证 | JWT + 无状态 Session | Session + Cookie / OAuth2 | SPA 直接带 Authorization，扩容不用粘性会话；refresh token 后续补 |
+| 2026-10-19 | v3 用户隔离 | `CurrentUser` 从 SecurityContext 取 user_id | 业务层继续手传 userId | 改动集中在上下文，练习/报告/复习自动按用户隔离 |
+| 2026-10-19 | v3 密码 | BCrypt | 明文/MD5 | 自带 salt、慢哈希；登录失败统一文案，避免枚举用户 |
+| 2026-10-19 | v3 SSE 异步 | 放行 ASYNC/ERROR dispatch + 请求线程取 userId | 依赖 SecurityContext 跨线程 | `SseEmitter` 完成会二次 dispatch，JWT 不在异步线程；显式传 userId 更稳 |
+| 2026-10-19 | v3 演示账号 | learner/learner123 首次初始化 | 让用户自己注册 | 保留已有 v1/v2 数据；生产 `DEMO_USER_ENABLED=false` |

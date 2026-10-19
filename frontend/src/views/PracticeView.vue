@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted } from 'vue'
 import api from '../api'
+import { authHeaders, clearAuth, isMockMode } from '../auth'
 import { renderMath } from '../utils/math'
 import { diffColor } from '../utils/ui'
 
@@ -141,8 +142,14 @@ async function explainWithAi(recordId) {
   try {
     const response = await fetch(`/api/ai/explain/${recordId}`, {
       method: 'POST',
+      headers: authHeaders(),
       signal: aiAbort.signal,
     })
+    if (response.status === 401) {
+      clearAuth()
+      window.location.assign('/login')
+      return
+    }
     if (!response.ok || !response.body) {
       throw new Error(`讲解请求失败：${response.status}`)
     }
@@ -389,7 +396,7 @@ onUnmounted(() => {
             <div class="text-sm text-slate-600 leading-relaxed" v-html="renderMath(results[currentQ.recordId].analysis)"></div>
           </div>
 
-          <div v-if="results[currentQ.recordId].isCorrect === false" class="flex justify-end">
+          <div v-if="results[currentQ.recordId].isCorrect === false && !isMockMode()" class="flex justify-end">
             <button
               @click="explainWithAi(currentQ.recordId)"
               :disabled="aiLoading"

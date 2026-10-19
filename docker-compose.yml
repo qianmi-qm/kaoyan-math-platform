@@ -53,6 +53,10 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com/v1}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-0123456789abcdef0123456789abcdef}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
+      DEMO_USER_ENABLED: ${DEMO_USER_ENABLED:-true}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-learner123}
     ports:
       - "8080:8080"
     healthcheck:
