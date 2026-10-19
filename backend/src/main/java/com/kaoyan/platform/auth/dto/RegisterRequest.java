@@ -1,5 +1,6 @@
 package com.kaoyan.platform.auth.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -15,4 +16,8 @@ public class RegisterRequest {
     @NotBlank(message = "密码不能为空")
     @Size(min = 6, max = 64, message = "密码需为 6~64 位")
     private String password;
+
+    @Email(message = "邮箱格式不正确")
+    @Size(max = 120, message = "邮箱过长")
+    private String email;
 }

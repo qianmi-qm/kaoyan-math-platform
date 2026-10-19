@@ -25,6 +25,8 @@ public class AuthRateLimiter {
     static final int LOGIN_IP_MAX_FAILURES = 30;
     static final int REGISTER_MAX = 10;
     static final Duration REGISTER_WINDOW = Duration.ofHours(1);
+    static final int FORGOT_MAX = 3;
+    static final Duration FORGOT_WINDOW = Duration.ofMinutes(15);
     private static final long CLEANUP_EVERY = 256;
     private static final long REDIS_RETRY_MS = 30_000L;
     private static final int MAX_LOCAL_COUNTERS = 20_000;
@@ -71,6 +73,14 @@ public class AuthRateLimiter {
 
     public void onRegister(String ip) {
         increment("register:" + ip, REGISTER_WINDOW);
+    }
+
+    public void checkForgot(String email, String ip) {
+        check("forgot:" + email.toLowerCase() + ":" + ip, FORGOT_MAX, FORGOT_WINDOW);
+    }
+
+    public void onForgot(String email, String ip) {
+        increment("forgot:" + email.toLowerCase() + ":" + ip, FORGOT_WINDOW);
     }
 
     private void check(String key, int max, Duration window) {

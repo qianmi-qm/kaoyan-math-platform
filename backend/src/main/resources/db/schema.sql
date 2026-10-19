@@ -14,8 +14,24 @@ CREATE TABLE IF NOT EXISTS `user` (
   password_hash VARCHAR(100) NULL COMMENT 'BCrypt 密码哈希；v3 认证',
   role          VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT 'USER / ADMIN',
   token_version INT NOT NULL DEFAULT 0 COMMENT '改密/登出时递增，使旧 JWT 失效',
-  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  email         VARCHAR(120) NULL COMMENT '邮箱；用于验证与找回密码',
+  email_verified TINYINT(1) NOT NULL DEFAULT 0 COMMENT '邮箱是否已验证',
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_email (email)
 ) ENGINE = InnoDB COMMENT '用户（v3 起多用户，BCrypt 密码）';
+
+CREATE TABLE IF NOT EXISTS auth_token (
+  id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id    BIGINT NOT NULL,
+  type       VARCHAR(20) NOT NULL COMMENT 'RESET_PASSWORD / VERIFY_EMAIL',
+  token_hash CHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at    DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_token_hash (token_hash),
+  KEY idx_user_type (user_id, type),
+  KEY idx_expires (expires_at)
+) ENGINE = InnoDB COMMENT '一次性认证 token（只存 hash）';
 
 CREATE TABLE IF NOT EXISTS question (
   id           BIGINT PRIMARY KEY AUTO_INCREMENT,

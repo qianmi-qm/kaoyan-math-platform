@@ -17,7 +17,7 @@ const navs = [
   { to: '/admin/questions', label: '题库编辑', admin: true }
 ]
 
-const isLoginPage = computed(() => route.path === '/login')
+const isAuthPage = computed(() => route.meta.public === true)
 
 function logout() {
   api.logout().catch(() => {}).finally(() => {
@@ -37,7 +37,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <RouterView v-if="isLoginPage" />
+  <RouterView v-if="isAuthPage" />
   <div v-else class="min-h-screen">
     <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
       <div class="max-w-5xl mx-auto px-4 h-14 flex items-center gap-6">

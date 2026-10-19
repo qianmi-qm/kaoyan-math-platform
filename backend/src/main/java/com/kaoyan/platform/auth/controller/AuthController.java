@@ -2,10 +2,14 @@ package com.kaoyan.platform.auth.controller;
 
 import com.kaoyan.platform.auth.dto.AuthResponse;
 import com.kaoyan.platform.auth.dto.ChangePasswordRequest;
+import com.kaoyan.platform.auth.dto.ForgotPasswordRequest;
 import com.kaoyan.platform.auth.dto.LoginRequest;
 import com.kaoyan.platform.auth.dto.RefreshRequest;
 import com.kaoyan.platform.auth.dto.RegisterRequest;
+import com.kaoyan.platform.auth.dto.ResetPasswordRequest;
+import com.kaoyan.platform.auth.dto.UpdateEmailRequest;
 import com.kaoyan.platform.auth.dto.UserVO;
+import com.kaoyan.platform.auth.dto.VerifyEmailRequest;
 import com.kaoyan.platform.auth.service.AuthService;
 import com.kaoyan.platform.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -66,6 +70,42 @@ public class AuthController {
     @PostMapping("/password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
+        return Result.ok();
+    }
+
+    @Operation(summary = "忘记密码：发送重置链接（不暴露邮箱是否存在）")
+    @PostMapping("/forgot-password")
+    public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                                       HttpServletRequest http) {
+        authService.forgotPassword(request, clientIp(http));
+        return Result.ok();
+    }
+
+    @Operation(summary = "重置密码：token 单次有效")
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return Result.ok();
+    }
+
+    @Operation(summary = "验证邮箱")
+    @PostMapping("/verify-email")
+    public Result<Void> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request);
+        return Result.ok();
+    }
+
+    @Operation(summary = "设置/修改邮箱并发送验证邮件")
+    @PostMapping("/email")
+    public Result<Void> updateEmail(@Valid @RequestBody UpdateEmailRequest request) {
+        authService.updateEmail(request);
+        return Result.ok();
+    }
+
+    @Operation(summary = "重发邮箱验证邮件")
+    @PostMapping("/email/resend")
+    public Result<Void> resendVerification() {
+        authService.resendVerification();
         return Result.ok();
     }
 

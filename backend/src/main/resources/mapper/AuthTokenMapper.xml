@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kaoyan.platform.auth.mapper.AuthTokenMapper">
+
+  <resultMap id="tokenMap" type="com.kaoyan.platform.auth.entity.AuthToken">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="type" column="type"/>
+    <result property="tokenHash" column="token_hash"/>
+    <result property="expiresAt" column="expires_at"/>
+    <result property="usedAt" column="used_at"/>
+    <result property="createdAt" column="created_at"/>
+  </resultMap>
+
+  <sql id="cols">id, user_id, type, token_hash, expires_at, used_at, created_at</sql>
+
+  <insert id="insert" parameterType="com.kaoyan.platform.auth.entity.AuthToken">
+    INSERT INTO auth_token (user_id, type, token_hash, expires_at)
+    VALUES (#{userId}, #{type}, #{tokenHash}, #{expiresAt})
+  </insert>
+
+  <select id="selectByHash" resultMap="tokenMap">
+    SELECT <include refid="cols"/>
+    FROM auth_token
+    WHERE token_hash = #{tokenHash}
+  </select>
+
+  <update id="markUsed">
+    UPDATE auth_token
+    SET used_at = #{usedAt}
+    WHERE token_hash = #{tokenHash} AND used_at IS NULL
+  </update>
+</mapper>

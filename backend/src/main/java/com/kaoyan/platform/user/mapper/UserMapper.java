@@ -13,9 +13,15 @@ public interface UserMapper {
 
     java.util.List<User> selectAll();
 
+    User selectByEmail(@Param("email") String email);
+
     int insert(User user);
 
     int updatePasswordHash(@Param("id") Long id, @Param("passwordHash") String passwordHash);
+
+    int updateEmail(@Param("id") Long id, @Param("email") String email);
+
+    int markEmailVerified(@Param("id") Long id);
 
     int updateRole(@Param("id") Long id, @Param("role") String role);
 

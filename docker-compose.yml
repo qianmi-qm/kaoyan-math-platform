@@ -63,6 +63,13 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_REQUIRED: ${ADMIN_REQUIRED:-true}
       ADMIN_PASSWORD_FORCE: ${ADMIN_PASSWORD_FORCE:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@kaoyan.local}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5173}
+      MAIL_LOG_LINKS: ${MAIL_LOG_LINKS:-true}
+      SPRING_MAIL_HOST: ${MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
     ports:
       # 只绑定本机，Swagger/调试用；公网流量走 Nginx，避免直连 backend 伪造 IP 头
       - "127.0.0.1:8080:8080"

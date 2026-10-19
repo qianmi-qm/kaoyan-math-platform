@@ -11,5 +11,7 @@ public class User {
     private String passwordHash;
     private String role;
     private Integer tokenVersion;
+    private String email;
+    private Boolean emailVerified;
     private LocalDateTime createdAt;
 }

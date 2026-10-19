@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api'
-import { clearAuth } from '../auth'
+import { authState, clearAuth, updateUser } from '../auth'
 
 const router = useRouter()
 const oldPassword = ref('')
@@ -11,6 +11,41 @@ const confirmPassword = ref('')
 const error = ref('')
 const success = ref('')
 const loading = ref(false)
+
+const email = ref(authState.user?.email || '')
+const emailError = ref('')
+const emailSuccess = ref('')
+const emailLoading = ref(false)
+
+async function saveEmail() {
+  emailError.value = ''
+  emailSuccess.value = ''
+  if (!email.value.trim()) {
+    emailError.value = '请输入邮箱'
+    return
+  }
+  emailLoading.value = true
+  try {
+    await api.updateEmail({ email: email.value.trim() })
+    updateUser({ email: email.value.trim(), emailVerified: false })
+    emailSuccess.value = '验证邮件已发送；本地未配 SMTP 时会打印在 backend 日志'
+  } catch (e) {
+    emailError.value = e.message
+  } finally {
+    emailLoading.value = false
+  }
+}
+
+async function resend() {
+  emailError.value = ''
+  emailSuccess.value = ''
+  try {
+    await api.resendVerification()
+    emailSuccess.value = '验证邮件已重发'
+  } catch (e) {
+    emailError.value = e.message
+  }
+}
 
 async function submit() {
   error.value = ''
@@ -39,6 +74,26 @@ async function submit() {
 
 <template>
   <div class="max-w-xl mx-auto bg-white rounded-xl border border-slate-200 p-6">
+    <div class="mb-6 pb-5 border-b border-slate-100">
+      <h3 class="text-base font-semibold mb-1">邮箱</h3>
+      <p class="text-sm text-slate-500 mb-3">
+        当前：{{ authState.user?.email || '未设置' }}
+        <span v-if="authState.user?.email" :class="authState.user.emailVerified ? 'text-emerald-600' : 'text-amber-600'">
+          {{ authState.user.emailVerified ? '（已验证）' : '（未验证）' }}
+        </span>
+      </p>
+      <div class="flex gap-2">
+        <input v-model="email" type="email" placeholder="you@example.com"
+               class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        <button :disabled="emailLoading" @click="saveEmail"
+                class="px-3 py-2 bg-slate-800 text-white rounded-lg text-sm disabled:opacity-50">保存并验证</button>
+        <button v-if="authState.user?.email && !authState.user?.emailVerified" @click="resend"
+                class="px-3 py-2 border border-slate-300 rounded-lg text-sm">重发</button>
+      </div>
+      <div v-if="emailError" class="mt-2 text-sm text-rose-600">{{ emailError }}</div>
+      <div v-if="emailSuccess" class="mt-2 text-sm text-emerald-700">{{ emailSuccess }}</div>
+    </div>
+
     <h2 class="text-lg font-bold mb-1">修改密码</h2>
     <p class="text-sm text-slate-500 mb-5">修改成功后，当前账号所有旧 token 会立即失效。</p>
 

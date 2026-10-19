@@ -39,6 +39,43 @@ public class AuthSchemaMigration implements ApplicationRunner {
             addColumn("ALTER TABLE `user` ADD COLUMN token_version INT NOT NULL DEFAULT 0 "
                     + "COMMENT '改密/登出时递增，使旧 JWT 失效' AFTER role", "token_version");
         }
+        if (!columnExists("user", "email")) {
+            addColumn("ALTER TABLE `user` ADD COLUMN email VARCHAR(120) NULL "
+                    + "COMMENT '邮箱；用于验证与找回密码' AFTER token_version", "email");
+        }
+        if (!columnExists("user", "email_verified")) {
+            addColumn("ALTER TABLE `user` ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 "
+                    + "COMMENT '邮箱是否已验证' AFTER email", "email_verified");
+        }
+        if (!indexExists("user", "uk_email")) {
+            try {
+                jdbc.execute("ALTER TABLE `user` ADD UNIQUE KEY uk_email (email)");
+                log.info("v3 migration: user.uk_email 已添加");
+            } catch (DataAccessException e) {
+                log.warn("v3 migration: 添加 uk_email 失败：{}", e.getMessage());
+            }
+        }
+        if (!tableExists("auth_token")) {
+            try {
+                jdbc.execute("""
+                        CREATE TABLE auth_token (
+                          id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+                          user_id    BIGINT NOT NULL,
+                          type       VARCHAR(20) NOT NULL,
+                          token_hash CHAR(64) NOT NULL,
+                          expires_at DATETIME NOT NULL,
+                          used_at    DATETIME NULL,
+                          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          UNIQUE KEY uk_token_hash (token_hash),
+                          KEY idx_user_type (user_id, type),
+                          KEY idx_expires (expires_at)
+                        ) ENGINE = InnoDB COMMENT '一次性认证 token（只存 hash）'
+                        """);
+                log.info("v3 migration: auth_token 已创建");
+            } catch (DataAccessException e) {
+                log.warn("v3 migration: 创建 auth_token 失败：{}", e.getMessage());
+            }
+        }
     }
 
     private void addColumn(String sql, String name) {
@@ -63,6 +100,14 @@ public class AuthSchemaMigration implements ApplicationRunner {
                 SELECT COUNT(*) FROM information_schema.columns
                 WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?
                 """, Integer.class, table, column);
+        return count != null && count > 0;
+    }
+
+    private boolean indexExists(String table, String index) {
+        Integer count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM information_schema.statistics
+                WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?
+                """, Integer.class, table, index);
         return count != null && count > 0;
     }
 }

@@ -8,10 +8,12 @@
     <result property="passwordHash" column="password_hash"/>
     <result property="role" column="role"/>
     <result property="tokenVersion" column="token_version"/>
+    <result property="email" column="email"/>
+    <result property="emailVerified" column="email_verified"/>
     <result property="createdAt" column="created_at"/>
   </resultMap>
 
-  <sql id="cols">id, username, password_hash, role, token_version, created_at</sql>
+  <sql id="cols">id, username, password_hash, role, token_version, email, email_verified, created_at</sql>
 
   <select id="selectByUsername" resultMap="userMap">
     SELECT <include refid="cols"/>
@@ -31,11 +33,29 @@
     ORDER BY id
   </select>
 
+  <select id="selectByEmail" resultMap="userMap">
+    SELECT <include refid="cols"/>
+    FROM `user`
+    WHERE email = #{email}
+  </select>
+
   <insert id="insert" parameterType="com.kaoyan.platform.user.entity.User"
           useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO `user` (username, password_hash, role)
-    VALUES (#{username}, #{passwordHash}, #{role})
+    INSERT INTO `user` (username, password_hash, role, email)
+    VALUES (#{username}, #{passwordHash}, #{role}, #{email})
   </insert>
+
+  <update id="updateEmail">
+    UPDATE `user`
+    SET email = #{email}, email_verified = 0
+    WHERE id = #{id}
+  </update>
+
+  <update id="markEmailVerified">
+    UPDATE `user`
+    SET email_verified = 1
+    WHERE id = #{id}
+  </update>
 
   <update id="updatePasswordHash">
     UPDATE `user`

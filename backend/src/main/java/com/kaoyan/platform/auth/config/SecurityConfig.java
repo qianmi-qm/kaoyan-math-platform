@@ -36,7 +36,8 @@ public class SecurityConfig {
                         // SSE 的异步完成/异常分派不带原始 Authorization，放行 ASYNC/ERROR
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/register",
-                                "/api/auth/refresh").permitAll()
+                                "/api/auth/refresh", "/api/auth/forgot-password",
+                                "/api/auth/reset-password", "/api/auth/verify-email").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html",
                                 "/swagger-ui/**", "/error").permitAll()
                         // 题库和知识点是全局共享数据，只有管理员能写

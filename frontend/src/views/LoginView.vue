@@ -11,6 +11,7 @@ const mode = ref('login')
 const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const email = ref('')
 const error = ref('')
 const loading = ref(false)
 
@@ -34,6 +35,9 @@ async function submit() {
   loading.value = true
   try {
     const payload = { username: username.value.trim(), password: password.value }
+    if (mode.value === 'register' && email.value.trim()) {
+      payload.email = email.value.trim()
+    }
     const data = mode.value === 'login'
       ? await api.login(payload)
       : await api.register(payload)
@@ -95,6 +99,16 @@ async function submit() {
           />
         </div>
         <div v-if="mode === 'register'">
+          <label class="block text-sm text-slate-600 mb-1">邮箱（可选，用于验证/找回密码）</label>
+          <input
+            v-model="email"
+            type="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+          />
+        </div>
+        <div v-if="mode === 'register'">
           <label class="block text-sm text-slate-600 mb-1">确认密码</label>
           <input
             v-model="confirmPassword"
@@ -115,6 +129,10 @@ async function submit() {
           class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition disabled:opacity-50"
         >{{ loading ? '请稍候…' : (mode === 'login' ? '登录' : '注册并登录') }}</button>
       </form>
+
+      <div v-if="mode === 'login'" class="mt-3 text-center">
+        <RouterLink to="/forgot-password" class="text-sm text-slate-500 hover:text-indigo-600">忘记密码？</RouterLink>
+      </div>
 
       <div class="mt-5 text-xs text-slate-400 leading-relaxed">
         演示账号由部署者通过 <span class="font-mono">DEMO_USER_ENABLED / DEMO_USER_PASSWORD</span> 配置。<br />

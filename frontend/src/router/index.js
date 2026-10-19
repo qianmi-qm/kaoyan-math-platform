@@ -6,6 +6,9 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/bank' },
     { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
+    { path: '/forgot-password', component: () => import('../views/ForgotPasswordView.vue'), meta: { public: true } },
+    { path: '/reset-password', component: () => import('../views/ResetPasswordView.vue'), meta: { public: true } },
+    { path: '/verify-email', component: () => import('../views/VerifyEmailView.vue'), meta: { public: true } },
     { path: '/bank', component: () => import('../views/QuestionBankView.vue') },
     { path: '/practice', component: () => import('../views/PracticeView.vue') },
     { path: '/report', component: () => import('../views/ReportView.vue') },

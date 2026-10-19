@@ -46,6 +46,11 @@ app:
     password: ${ADMIN_PASSWORD:}
     required: ${ADMIN_REQUIRED:true}
     force-password: ${ADMIN_PASSWORD_FORCE:false}
+  mail:
+    from: ${MAIL_FROM:no-reply@kaoyan.local}
+    base-url: ${APP_BASE_URL:http://localhost:5173}
+    # 未配置 SMTP 时把链接打到日志；生产设 false
+    log-links: ${MAIL_LOG_LINKS:true}
   cache:
     report:
       enabled: ${REPORT_CACHE_ENABLED:true}
