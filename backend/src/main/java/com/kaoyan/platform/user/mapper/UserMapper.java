@@ -11,6 +11,8 @@ public interface UserMapper {
 
     User selectById(@Param("id") Long id);
 
+    java.util.List<User> selectAll();
+
     int insert(User user);
 
     int updatePasswordHash(@Param("id") Long id, @Param("passwordHash") String passwordHash);

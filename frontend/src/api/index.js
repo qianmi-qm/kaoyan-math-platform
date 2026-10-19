@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { authState, clearAuth, setAuth } from '../auth'
+import { authState, clearAuth, setAuth, syncFromStorage } from '../auth'
 import {
   flattenKnowledgePoints,
   normalizeImportResult,
@@ -43,6 +43,7 @@ http.interceptors.response.use(
       && !url.includes('/auth/refresh')
 
     if (shouldRefresh) {
+      const previousToken = authState.token
       original._retry = true
       try {
         if (!refreshPromise) {
@@ -61,7 +62,17 @@ http.interceptors.response.use(
         original.headers.Authorization = `Bearer ${token}`
         return http(original)
       } catch {
-        // fall through to clear + login
+        // 另一个标签页可能已经刷新成功；同步它的新 token 后重试一次
+        syncFromStorage()
+        if (authState.token && authState.token !== previousToken) {
+          original.headers = original.headers || {}
+          original.headers.Authorization = `Bearer ${authState.token}`
+          try {
+            return await http(original)
+          } catch {
+            // fall through to clear + login
+          }
+        }
       }
     }
 
@@ -84,6 +95,8 @@ export default {  // v3 认证
   logout: () => http.post('/auth/logout'),
   changePassword: (payload) => http.post('/auth/password', payload),
   aiQuota: () => http.get('/ai/quota'),
+  adminUsers: () => http.get('/admin/users'),
+  updateUserRole: (id, role) => http.patch(`/admin/users/${id}/role`, { role }),
 
   // L2 题库
   listQuestions: (params) => http.get('/questions', { params }).then(normalizeQuestionPage),

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.kaoyan.platform.auth.config.SecurityConfig;
+import com.kaoyan.platform.auth.controller.AdminUserController;
 import com.kaoyan.platform.auth.controller.AuthController;
 import com.kaoyan.platform.auth.dto.AuthResponse;
 import com.kaoyan.platform.auth.dto.LoginRequest;
@@ -16,6 +17,7 @@ import com.kaoyan.platform.auth.security.JwtAuthenticationFilter;
 import com.kaoyan.platform.auth.security.JwtService;
 import com.kaoyan.platform.auth.security.RestAccessDeniedHandler;
 import com.kaoyan.platform.auth.security.RestAuthenticationEntryPoint;
+import com.kaoyan.platform.auth.service.AdminUserService;
 import com.kaoyan.platform.auth.service.AuthService;
 import com.kaoyan.platform.question.controller.QuestionController;
 import com.kaoyan.platform.question.service.QuestionService;
@@ -30,7 +32,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(controllers = {AuthController.class, QuestionController.class})
+@WebMvcTest(controllers = {AuthController.class, QuestionController.class, AdminUserController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class,
         RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class})
 class SecurityAccessTest {
@@ -40,6 +42,8 @@ class SecurityAccessTest {
 
     @MockBean
     private AuthService authService;
+    @MockBean
+    private AdminUserService adminUserService;
     @MockBean
     private QuestionService questionService;
     @MockBean
@@ -94,5 +98,14 @@ class SecurityAccessTest {
 
         mockMvc.perform(get("/api/questions/1").with(user("bob").roles("USER")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("管理员用户列表：USER 403，ADMIN 200")
+    void adminUserListRequiresAdmin() throws Exception {
+        mockMvc.perform(get("/api/admin/users").with(user("bob").roles("USER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/users").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
     }
 }

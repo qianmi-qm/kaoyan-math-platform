@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isLoggedIn } from '../auth'
+import { isAdmin, isLoggedIn } from '../auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -11,6 +11,7 @@ const router = createRouter({
     { path: '/report', component: () => import('../views/ReportView.vue') },
     { path: '/review', component: () => import('../views/ReviewView.vue') },
     { path: '/account', component: () => import('../views/AccountView.vue') },
+    { path: '/admin', component: () => import('../views/AdminUsersView.vue'), meta: { admin: true } },
     { path: '/:pathMatch(.*)*', redirect: '/bank' },
   ],
 })
@@ -22,6 +23,9 @@ router.beforeEach((to) => {
   }
   if (!isLoggedIn()) {
     return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.admin && !isAdmin()) {
+    return { path: '/bank' }
   }
   return true
 })

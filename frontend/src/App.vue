@@ -2,7 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import api from './api'
-import { authState, clearAuth, isMockMode, updateUser } from './auth'
+import { authState, clearAuth, isAdmin, isMockMode, updateUser } from './auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,7 +12,8 @@ const navs = [
   { to: '/practice', label: '练习' },
   { to: '/report', label: '每日报告' },
   { to: '/review', label: '今日复习' },
-  { to: '/account', label: '账号' }
+  { to: '/account', label: '账号' },
+  { to: '/admin', label: '用户管理', admin: true }
 ]
 
 const isLoginPage = computed(() => route.path === '/login')
@@ -41,15 +42,16 @@ onMounted(async () => {
       <div class="max-w-5xl mx-auto px-4 h-14 flex items-center gap-6">
         <span class="font-bold text-lg">考研高数学习平台</span>
         <nav class="flex gap-4">
-          <RouterLink
-            v-for="n in navs"
-            :key="n.to"
-            :to="n.to"
-            class="text-slate-600 hover:text-indigo-600"
-            active-class="text-indigo-600 font-semibold"
-          >
-            {{ n.label }}
-          </RouterLink>
+          <template v-for="n in navs" :key="n.to">
+            <RouterLink
+              v-if="!n.admin || isAdmin()"
+              :to="n.to"
+              class="text-slate-600 hover:text-indigo-600"
+              active-class="text-indigo-600 font-semibold"
+            >
+              {{ n.label }}
+            </RouterLink>
+          </template>
         </nav>
         <div class="ml-auto flex items-center gap-3 text-sm">
           <span v-if="isMockMode()" class="px-2 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">演示模式</span>

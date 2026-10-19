@@ -42,6 +42,21 @@ export function updateUser(user) {
   localStorage.setItem(USER_KEY, JSON.stringify(authState.user))
 }
 
+/** 其他标签页刷新/登出后，从 localStorage 同步最新 token/角色。 */
+export function syncFromStorage() {
+  authState.token = localStorage.getItem(TOKEN_KEY) || ''
+  authState.refreshToken = localStorage.getItem(REFRESH_KEY) || ''
+  authState.user = readUser()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (!event.key || [TOKEN_KEY, REFRESH_KEY, USER_KEY].includes(event.key)) {
+      syncFromStorage()
+    }
+  })
+}
+
 export function isMockMode() {
   return typeof localStorage !== 'undefined' && localStorage.getItem('mock') === '1'
 }

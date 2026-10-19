@@ -25,6 +25,12 @@
     WHERE id = #{id}
   </select>
 
+  <select id="selectAll" resultMap="userMap">
+    SELECT <include refid="cols"/>
+    FROM `user`
+    ORDER BY id
+  </select>
+
   <insert id="insert" parameterType="com.kaoyan.platform.user.entity.User"
           useGeneratedKeys="true" keyProperty="id">
     INSERT INTO `user` (username, password_hash, role)
