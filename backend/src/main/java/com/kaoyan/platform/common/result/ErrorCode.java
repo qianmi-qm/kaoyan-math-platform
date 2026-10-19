@@ -9,6 +9,7 @@ public enum ErrorCode {
     PARAM_ERROR(4001, "参数错误"),
     UNAUTHORIZED(4010, "未登录或登录已过期"),
     FORBIDDEN(4030, "无权访问"),
+    TOO_MANY_REQUESTS(4290, "请求过于频繁，请稍后再试"),
     NOT_FOUND(5001, "资源不存在"),
     CONFLICT(4090, "资源冲突"),
     NOT_IMPLEMENTED(5010, "骨架未实现：等待你来完成"),

@@ -41,6 +41,8 @@ public class SecurityConfig {
                         // 题库和知识点是全局共享数据，只有管理员能写
                         .requestMatchers(HttpMethod.POST, "/api/questions",
                                 "/api/questions/import", "/api/knowledge-points").hasRole("ADMIN")
+                        // 详情接口含答案/解析；练习防作弊，普通用户走提交后的记录接口
+                        .requestMatchers(HttpMethod.GET, "/api/questions/*").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(entryPoint)

@@ -22,16 +22,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CurrentUser currentUser;
+    private final AuthRateLimiter rateLimiter;
 
     public AuthService(UserMapper userMapper, PasswordEncoder passwordEncoder,
-                       JwtService jwtService, CurrentUser currentUser) {
+                       JwtService jwtService, CurrentUser currentUser,
+                       AuthRateLimiter rateLimiter) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.currentUser = currentUser;
+        this.rateLimiter = rateLimiter;
     }
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String ip) {
+        rateLimiter.checkRegister(ip);
         String username = request.getUsername().trim();
         if (userMapper.selectByUsername(username) != null) {
             throw new BusinessException(ErrorCode.CONFLICT, "用户名已存在");
@@ -45,15 +49,20 @@ public class AuthService {
         } catch (DuplicateKeyException e) {
             throw new BusinessException(ErrorCode.CONFLICT, "用户名已存在");
         }
+        rateLimiter.onRegister(ip);
         return buildResponse(user);
     }
 
-    public AuthResponse login(LoginRequest request) {
-        User user = userMapper.selectByUsername(request.getUsername().trim());
+    public AuthResponse login(LoginRequest request, String ip) {
+        String username = request.getUsername().trim();
+        rateLimiter.checkLogin(username, ip);
+        User user = userMapper.selectByUsername(username);
         if (user == null || !StringUtils.hasText(user.getPasswordHash())
                 || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            rateLimiter.onLoginFailure(username, ip);
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "用户名或密码错误");
         }
+        rateLimiter.onLoginSuccess(username, ip);
         return buildResponse(user);
     }
 

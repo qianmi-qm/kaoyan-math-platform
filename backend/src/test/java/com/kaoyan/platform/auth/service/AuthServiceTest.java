@@ -34,12 +34,14 @@ class AuthServiceTest {
     private JwtService jwtService;
     @Mock
     private CurrentUser currentUser;
+    @Mock
+    private AuthRateLimiter rateLimiter;
 
     private AuthService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuthService(userMapper, passwordEncoder, jwtService, currentUser);
+        service = new AuthService(userMapper, passwordEncoder, jwtService, currentUser, rateLimiter);
     }
 
     @Test
@@ -58,7 +60,7 @@ class AuthServiceTest {
         when(jwtService.generate(2L, "alice")).thenReturn("jwt-token");
         when(jwtService.getExpireSeconds()).thenReturn(3600L);
 
-        AuthResponse response = service.register(request);
+        AuthResponse response = service.register(request, "127.0.0.1");
 
         assertEquals("jwt-token", response.getToken());
         assertEquals(2L, response.getUserId());
@@ -80,7 +82,8 @@ class AuthServiceTest {
         request.setUsername("alice");
         request.setPassword("bad-pass");
 
-        BusinessException e = assertThrows(BusinessException.class, () -> service.login(request));
+        BusinessException e = assertThrows(BusinessException.class,
+                () -> service.login(request, "127.0.0.1"));
         assertEquals(ErrorCode.UNAUTHORIZED, e.getErrorCode());
     }
 }

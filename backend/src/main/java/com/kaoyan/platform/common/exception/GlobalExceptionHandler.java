@@ -25,6 +25,7 @@ public class GlobalExceptionHandler {
             case PARAM_ERROR -> HttpStatus.BAD_REQUEST;
             case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
+            case TOO_MANY_REQUESTS -> HttpStatus.TOO_MANY_REQUESTS;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
             case NOT_IMPLEMENTED -> HttpStatus.NOT_IMPLEMENTED;
