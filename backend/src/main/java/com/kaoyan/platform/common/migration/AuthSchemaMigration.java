@@ -9,7 +9,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-/** v3 认证迁移：老库 user 表补 password_hash。 */
+/** v3 认证迁移：老库 user 表补 password_hash / role。 */
 @Slf4j
 @Component
 @Order(1)
@@ -23,27 +23,42 @@ public class AuthSchemaMigration implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        Integer table = jdbc.queryForObject("""
-                SELECT COUNT(*) FROM information_schema.tables
-                WHERE table_schema = DATABASE() AND table_name = 'user'
-                """, Integer.class);
-        if (table == null || table == 0) {
+        if (!tableExists("user")) {
             log.warn("user 表不存在，跳过 v3 auth migration（请先执行 schema.sql）");
             return;
         }
-        Integer column = jdbc.queryForObject("""
-                SELECT COUNT(*) FROM information_schema.columns
-                WHERE table_schema = DATABASE() AND table_name = 'user' AND column_name = 'password_hash'
-                """, Integer.class);
-        if (column != null && column > 0) {
-            return;
+        if (!columnExists("user", "password_hash")) {
+            addColumn("ALTER TABLE `user` ADD COLUMN password_hash VARCHAR(100) NULL "
+                    + "COMMENT 'BCrypt 密码哈希；v3 认证' AFTER username", "password_hash");
         }
+        if (!columnExists("user", "role")) {
+            addColumn("ALTER TABLE `user` ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER' "
+                    + "COMMENT 'USER / ADMIN' AFTER password_hash", "role");
+        }
+    }
+
+    private void addColumn(String sql, String name) {
         try {
-            jdbc.execute("ALTER TABLE `user` ADD COLUMN password_hash VARCHAR(100) NULL "
-                    + "COMMENT 'BCrypt 密码哈希；v3 认证' AFTER username");
-            log.info("v3 migration: user.password_hash 已添加");
+            jdbc.execute(sql);
+            log.info("v3 migration: user.{} 已添加", name);
         } catch (DataAccessException e) {
-            log.warn("v3 migration: 添加 password_hash 失败（可能已存在）：{}", e.getMessage());
+            log.warn("v3 migration: 添加 {} 失败（可能已存在）：{}", name, e.getMessage());
         }
+    }
+
+    private boolean tableExists(String table) {
+        Integer count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = DATABASE() AND table_name = ?
+                """, Integer.class, table);
+        return count != null && count > 0;
+    }
+
+    private boolean columnExists(String table, String column) {
+        Integer count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?
+                """, Integer.class, table, column);
+        return count != null && count > 0;
     }
 }

@@ -117,7 +117,7 @@ async function submit() {
       </form>
 
       <div class="mt-5 text-xs text-slate-400 leading-relaxed">
-        演示账号：<span class="text-slate-600 font-mono">learner / learner123</span><br />
+        演示账号由部署者通过 <span class="font-mono">DEMO_USER_ENABLED / DEMO_USER_PASSWORD</span> 配置。<br />
         新注册账号从空题库视角开始，学习记录互相隔离。
       </div>
     </div>

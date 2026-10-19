@@ -6,10 +6,11 @@
     <id property="id" column="id"/>
     <result property="username" column="username"/>
     <result property="passwordHash" column="password_hash"/>
+    <result property="role" column="role"/>
     <result property="createdAt" column="created_at"/>
   </resultMap>
 
-  <sql id="cols">id, username, password_hash, created_at</sql>
+  <sql id="cols">id, username, password_hash, role, created_at</sql>
 
   <select id="selectByUsername" resultMap="userMap">
     SELECT <include refid="cols"/>
@@ -25,13 +26,25 @@
 
   <insert id="insert" parameterType="com.kaoyan.platform.user.entity.User"
           useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO `user` (username, password_hash)
-    VALUES (#{username}, #{passwordHash})
+    INSERT INTO `user` (username, password_hash, role)
+    VALUES (#{username}, #{passwordHash}, #{role})
   </insert>
 
   <update id="updatePasswordHash">
     UPDATE `user`
     SET password_hash = #{passwordHash}
     WHERE id = #{id}
+  </update>
+
+  <update id="updateRole">
+    UPDATE `user`
+    SET role = #{role}
+    WHERE id = #{id}
+  </update>
+
+  <update id="clearDemoUser">
+    UPDATE `user`
+    SET password_hash = NULL, role = 'USER'
+    WHERE id = #{id} AND username = 'learner'
   </update>
 </mapper>

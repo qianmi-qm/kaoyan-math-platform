@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   id            BIGINT PRIMARY KEY AUTO_INCREMENT,
   username      VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(100) NULL COMMENT 'BCrypt 密码哈希；v3 认证',
+  role          VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT 'USER / ADMIN',
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB COMMENT '用户（v3 起多用户，BCrypt 密码）';
 

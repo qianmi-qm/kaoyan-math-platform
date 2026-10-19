@@ -39,6 +39,7 @@ public class AuthService {
         User user = new User();
         user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setRole("USER");
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException e) {
@@ -61,12 +62,12 @@ public class AuthService {
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "用户不存在");
         }
-        return new UserVO(user.getId(), user.getUsername());
+        return new UserVO(user.getId(), user.getUsername(), user.getRole());
     }
 
     private AuthResponse buildResponse(User user) {
         String token = jwtService.generate(user.getId(), user.getUsername());
         return new AuthResponse(token, "Bearer", jwtService.getExpireSeconds(),
-                user.getId(), user.getUsername());
+                user.getId(), user.getUsername(), user.getRole());
     }
 }

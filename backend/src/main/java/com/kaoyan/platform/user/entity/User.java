@@ -9,5 +9,6 @@ public class User {
     private Long id;
     private String username;
     private String passwordHash;
+    private String role;
     private LocalDateTime createdAt;
 }

@@ -1,6 +1,6 @@
 # 考研高等数学学习平台（v3）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证与多用户隔离**；32 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离与管理员权限**；33 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
 > 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)。
 
@@ -14,14 +14,15 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
-| `mvn test` | 32/32 通过 |
+| `mvn test` | 33/33 通过 |
 | v1 业务链路（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
 | v3 认证 / 多用户 | 登录、注册、401、user_id 隔离通过 |
+| v3 权限 | 普通用户题库写接口 403；管理员可导入 |
 | Redis 报告缓存 | 命中 / 提交后失效 / Redis 宕机降级通过 |
 | AI 错题讲解 | SSE 首调 / 二次读库 / 无 key 降级通过 |
 | Docker Compose | 四容器 `up`（3307 / 8080 / 5173；Redis 内部） |
 
-红灯不是缺陷，是完成定义——现在 32 个测试已经全部转绿。
+红灯不是缺陷，是完成定义——现在 33 个测试已经全部转绿。
 
 ## 验证记录（2026-10-19）
 
@@ -29,8 +30,9 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 
 | 项 | 结果 |
 |----|------|
-| 单元测试 | 32/32 通过 |
-| v3 认证 | 无 token 401；learner/learner123 登录 200；错密码 401 |
+| 单元测试 | 33/33 通过 |
+| v3 认证 | 无 token 401；learner + 本地配置密码登录 200；错密码 401 |
+| v3 权限 | bob（USER）创建/导入题目 403；learner（ADMIN）可管理 |
 | v3 多用户 | learner 日报 total=1；新用户 alice 日报 total=0、练习记录 0 |
 | v3 前端 | 登录页渲染；表单登录后跳 `/bank`；未登录访问 `/bank` 跳 `/login` |
 | L1 知识点树 | 3 个根节点 / 6 个知识点 |
@@ -72,8 +74,10 @@ docker compose up -d --build
 # 后端 http://localhost:8080  Swagger http://localhost:8080/swagger-ui.html
 # Redis 只在 compose 内部使用（6379，不映射宿主）
 # MySQL 默认映射宿主 3306（root/root）；公网/共享环境建议：
-#   cp .env.example .env && 修改 MYSQL_ROOT_PASSWORD / JWT_SECRET / DEMO_USER_PASSWORD
-# 本地演示账号：learner / learner123（启动时自动初始化；生产设 DEMO_USER_ENABLED=false）
+#   cp .env.example .env && 修改 MYSQL_ROOT_PASSWORD / JWT_SECRET
+# JWT_SECRET 无默认值，且示例值会被启动校验拒绝
+# 本地演示需显式设 DEMO_USER_ENABLED=true + 非默认 DEMO_USER_PASSWORD；默认关闭
+# 演示账号由部署者配置，不再是固定的 learner123
 # AI 讲解可选：在 .env 填 AI_API_KEY；不填则自动降级为参考解析
 # 本机 3306 已被占用时（常见）：
 #   MYSQL_PORT=3307 docker compose up -d --build
@@ -92,7 +96,7 @@ docker compose up -d --build
 3. 后端：`cd backend && mvn spring-boot:run`（`JWT_SECRET`、`AI_API_KEY` 通过环境变量传入）
 4. 前端：`cd frontend && npm install && npm run dev`（已配 /api 代理到 8080）
 
-启动后先访问 `/login`，演示账号 `learner / learner123`；也可以注册新用户。
+启动后先访问 `/login`；演示账号是否可用取决于 `.env` 的 `DEMO_USER_ENABLED` 和 `DEMO_USER_PASSWORD`，也可以注册新用户。新用户默认 USER，只能管理自己的学习数据；题库写接口需要 ADMIN。
 
 ### 前端 Mock 模式（不启动后端也能体验完整界面）
 
@@ -105,7 +109,7 @@ docker compose up -d --build
 ```bash
 cd backend
 mvn compile        # 编译
-mvn test           # 32 个验收测试全绿
+mvn test           # 33 个验收测试全绿
 ```
 
 ## 目录结构
@@ -124,7 +128,7 @@ backend/
   src/main/resources/
     db/schema.sql        # 8 张表 DDL + 初始数据
     mapper/*.xml         # MyBatis SQL
-  src/test/java/         # 验收测试：32 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3）
+  src/test/java/         # 验收测试：33 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3）
 frontend/
   src/views/     # 五页面（登录/题库/练习/报告/复习）
   src/auth.js    # token 持久化 / 登录态 / mock 模式

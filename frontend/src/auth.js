@@ -18,7 +18,7 @@ export const authState = reactive({
 
 export function setAuth(data) {
   authState.token = data.token
-  authState.user = { id: data.userId, username: data.username }
+  authState.user = { id: data.userId, username: data.username, role: data.role || 'USER' }
   localStorage.setItem(TOKEN_KEY, data.token)
   localStorage.setItem(USER_KEY, JSON.stringify(authState.user))
 }
@@ -40,4 +40,8 @@ export function isLoggedIn() {
 
 export function authHeaders() {
   return authState.token ? { Authorization: `Bearer ${authState.token}` } : {}
+}
+
+export function isAdmin() {
+  return authState.user?.role === 'ADMIN'
 }

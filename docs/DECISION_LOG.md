@@ -36,4 +36,6 @@
 | 2026-10-19 | v3 用户隔离 | `CurrentUser` 从 SecurityContext 取 user_id | 业务层继续手传 userId | 改动集中在上下文，练习/报告/复习自动按用户隔离 |
 | 2026-10-19 | v3 密码 | BCrypt | 明文/MD5 | 自带 salt、慢哈希；登录失败统一文案，避免枚举用户 |
 | 2026-10-19 | v3 SSE 异步 | 放行 ASYNC/ERROR dispatch + 请求线程取 userId | 依赖 SecurityContext 跨线程 | `SseEmitter` 完成会二次 dispatch，JWT 不在异步线程；显式传 userId 更稳 |
-| 2026-10-19 | v3 演示账号 | learner/learner123 首次初始化 | 让用户自己注册 | 保留已有 v1/v2 数据；生产 `DEMO_USER_ENABLED=false` |
+| 2026-10-19 | v3 默认密钥 | `JWT_SECRET` 无默认值，缺失/示例值启动失败 | 保留 dev 默认值 | 默认 secret 等于公开认证后门；宁可启动失败 |
+| 2026-10-19 | v3 角色 | USER/ADMIN，题库/知识点写接口仅 ADMIN | 所有登录用户可写 | 题库是全局共享数据，必须收口写权限 |
+| 2026-10-19 | v3 演示账号 | 默认关闭；开启必须显式非默认密码，关闭时清历史密码 | 固定 learner/learner123 | 避免“关了开关仍能用默认密码登录” |

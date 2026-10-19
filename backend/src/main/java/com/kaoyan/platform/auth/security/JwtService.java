@@ -19,11 +19,13 @@ public class JwtService {
     private final long expireSeconds;
 
     public JwtService(JwtProperties properties) {
-        if (properties.getSecret() == null
-                || properties.getSecret().getBytes(StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException("app.jwt.secret 至少需要 32 字节");
+        String secret = properties.getSecret();
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < 32
+                || secret.contains("change-me") || secret.contains("dev-only")) {
+            throw new IllegalStateException(
+                    "JWT_SECRET 未配置或仍是示例值：请设置至少 32 字节的随机密钥");
         }
-        this.key = Keys.hmacShaKeyFor(properties.getSecret().getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expireSeconds = Duration.ofHours(Math.max(1, properties.getExpireHours())).toSeconds();
     }
 

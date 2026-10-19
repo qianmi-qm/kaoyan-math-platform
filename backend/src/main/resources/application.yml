@@ -32,13 +32,13 @@ springdoc:
 
 app:
   jwt:
-    # 生产必须用环境变量覆盖；至少 32 字节
-    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-0123456789abcdef0123456789abcdef}
+    # 必须由环境变量提供；无默认值，缺失时应用启动失败
+    secret: ${JWT_SECRET:}
     expire-hours: ${JWT_EXPIRE_HOURS:24}
   demo-user:
-    # 本地演示账号 learner / learner123；生产设 DEMO_USER_ENABLED=false
-    enabled: ${DEMO_USER_ENABLED:true}
-    password: ${DEMO_USER_PASSWORD:learner123}
+    # 默认关闭；本地演示需显式开启并设置非默认密码
+    enabled: ${DEMO_USER_ENABLED:false}
+    password: ${DEMO_USER_PASSWORD:}
   cache:
     report:
       enabled: ${REPORT_CACHE_ENABLED:true}

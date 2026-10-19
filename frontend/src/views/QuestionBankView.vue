@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../api'
+import { isAdmin } from '../auth'
 import { renderMath } from '../utils/math'
 import { diffColor } from '../utils/ui'
 
@@ -92,17 +93,19 @@ onMounted(() => { loadKps(); loadQuestions() })
           </optgroup>
         </select>
 
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label v-if="isAdmin()" class="flex items-center gap-2 cursor-pointer">
           <input type="file" accept=".xlsx,.xls" @change="e => importFile = e.target.files[0]" class="hidden">
           <span class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm transition">
             {{ importFile ? importFile.name : '选择 Excel' }}
           </span>
         </label>
         <button
+          v-if="isAdmin()"
           @click="handleImport"
           :disabled="!importFile"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium transition"
         >导入</button>
+        <span v-else class="text-xs text-slate-400">只读题库 · 仅管理员可导入</span>
       </div>
 
       <!-- 导入结果 -->

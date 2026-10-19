@@ -29,4 +29,12 @@ class JwtServiceTest {
         assertEquals("alice", user.username());
         assertThrows(JwtException.class, () -> jwt.parse("not-a-jwt"));
     }
+
+    @Test
+    @DisplayName("默认/示例 JWT secret 必须被拒绝")
+    void rejectsDefaultSecret() {
+        JwtProperties properties = new JwtProperties();
+        properties.setSecret("dev-only-jwt-secret-change-me-0123456789abcdef0123456789abcdef");
+        assertThrows(IllegalStateException.class, () -> new JwtService(properties));
+    }
 }
