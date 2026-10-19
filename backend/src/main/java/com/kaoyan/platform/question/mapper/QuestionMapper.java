@@ -11,6 +11,10 @@ public interface QuestionMapper {
     /** 插入题目，主键回填到 question.id（XML 里配 useGeneratedKeys） */
     int insert(Question question);
 
+    int update(Question question);
+
+    int deleteQuestionKp(@Param("questionId") Long questionId);
+
     /** 插入题目-知识点关联 */
     int insertQuestionKp(@Param("questionId") Long questionId, @Param("kpId") Long kpId);
 

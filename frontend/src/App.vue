@@ -13,7 +13,8 @@ const navs = [
   { to: '/report', label: '每日报告' },
   { to: '/review', label: '今日复习' },
   { to: '/account', label: '账号' },
-  { to: '/admin', label: '用户管理', admin: true }
+  { to: '/admin', label: '用户管理', admin: true },
+  { to: '/admin/questions', label: '题库编辑', admin: true }
 ]
 
 const isLoginPage = computed(() => route.path === '/login')

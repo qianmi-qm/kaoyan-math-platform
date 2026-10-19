@@ -12,6 +12,9 @@ public interface QuestionService {
 
     QuestionVO create(QuestionCreateDTO dto);
 
+    /** 管理员编辑题目：覆盖题干/选项/答案/解析/难度/知识点。 */
+    QuestionVO update(Long id, QuestionCreateDTO dto);
+
     /**
      * L2 学习任务：Excel 批量导入。
      * 要求：

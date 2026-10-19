@@ -97,6 +97,9 @@ export default {  // v3 认证
   aiQuota: () => http.get('/ai/quota'),
   adminUsers: () => http.get('/admin/users'),
   updateUserRole: (id, role) => http.patch(`/admin/users/${id}/role`, { role }),
+  questionDetail: (id) => http.get(`/questions/${id}`),
+  createQuestion: (payload) => http.post('/questions', payload),
+  updateQuestion: (id, payload) => http.put(`/questions/${id}`, payload),
 
   // L2 题库
   listQuestions: (params) => http.get('/questions', { params }).then(normalizeQuestionPage),

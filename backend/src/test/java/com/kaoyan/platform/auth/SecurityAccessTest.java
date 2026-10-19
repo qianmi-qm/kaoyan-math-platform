@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.kaoyan.platform.auth.config.SecurityConfig;
@@ -98,6 +99,27 @@ class SecurityAccessTest {
 
         mockMvc.perform(get("/api/questions/1").with(user("bob").roles("USER")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("管理员编辑题目：USER 403，ADMIN 200")
+    void questionUpdateRequiresAdmin() throws Exception {
+        when(questionService.update(any(), any())).thenReturn(new QuestionVO());
+        String body = """
+                {"type":1,"content":"test","answer":"A","difficulty":1,"kpIds":[1]}
+                """;
+
+        mockMvc.perform(put("/api/questions/1")
+                        .with(user("bob").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/api/questions/1")
+                        .with(user("admin").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -79,6 +79,39 @@ public class QuestionServiceImpl implements QuestionService {
         return toVO(question, true);
     }
 
+    @Override
+    @Transactional
+    public QuestionVO update(Long id, QuestionCreateDTO dto) {
+        Question existing = questionMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "题目不存在");
+        }
+        List<Long> kpIds = List.copyOf(new LinkedHashSet<>(dto.getKpIds()));
+        if (knowledgePointMapper.selectByIds(kpIds).size() != kpIds.size()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "存在不存在的知识点 id");
+        }
+        validateOptions(dto.getOptions());
+        String hash = sha256(dto.getContent().trim());
+        Question duplicate = questionMapper.selectByContentHash(hash);
+        if (duplicate != null && !duplicate.getId().equals(id)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "题目已存在（题干重复）");
+        }
+
+        existing.setType(dto.getType());
+        existing.setContent(dto.getContent());
+        existing.setOptions(dto.getOptions());
+        existing.setAnswer(dto.getAnswer());
+        existing.setAnalysis(dto.getAnalysis());
+        existing.setDifficulty(dto.getDifficulty());
+        existing.setContentHash(hash);
+        questionMapper.update(existing);
+        questionMapper.deleteQuestionKp(id);
+        for (Long kpId : kpIds) {
+            questionMapper.insertQuestionKp(id, kpId);
+        }
+        return detail(id);
+    }
+
     /**
      * 事务边界取舍：整文件一个事务。
      * 逐行异常在方法内被 catch，坏行不会触发回滚；换来的是"全有或全无"——

@@ -12,6 +12,7 @@ const router = createRouter({
     { path: '/review', component: () => import('../views/ReviewView.vue') },
     { path: '/account', component: () => import('../views/AccountView.vue') },
     { path: '/admin', component: () => import('../views/AdminUsersView.vue'), meta: { admin: true } },
+    { path: '/admin/questions', component: () => import('../views/AdminQuestionsView.vue'), meta: { admin: true } },
     { path: '/:pathMatch(.*)*', redirect: '/bank' },
   ],
 })

@@ -27,6 +27,18 @@
     INSERT INTO question_kp (question_id, kp_id) VALUES (#{questionId}, #{kpId})
   </insert>
 
+  <update id="update" parameterType="com.kaoyan.platform.question.entity.Question">
+    UPDATE question
+    SET type = #{type}, content = #{content}, options = #{options},
+        answer = #{answer}, analysis = #{analysis}, difficulty = #{difficulty},
+        content_hash = #{contentHash}
+    WHERE id = #{id}
+  </update>
+
+  <delete id="deleteQuestionKp">
+    DELETE FROM question_kp WHERE question_id = #{questionId}
+  </delete>
+
   <!-- kpId 为空时不 join，避免无谓关联 -->
   <select id="selectPage" resultMap="questionMap">
     SELECT <include refid="colsQ"/>

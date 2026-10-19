@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // 详情接口含答案/解析；练习防作弊，普通用户走提交后的记录接口
                         .requestMatchers(HttpMethod.GET, "/api/questions/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/questions/*").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(entryPoint)
