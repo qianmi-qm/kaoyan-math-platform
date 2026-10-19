@@ -100,6 +100,11 @@ export default {  // v3 认证
   updateEmail: (payload) => http.post('/auth/email', payload),
   resendVerification: () => http.post('/auth/email/resend'),
   aiQuota: () => http.get('/ai/quota'),
+  photoSearch: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return http.post('/ai/photo-search', form, { timeout: 120000 })
+  },
   adminUsers: () => http.get('/admin/users'),
   updateUserRole: (id, role) => http.patch(`/admin/users/${id}/role`, { role }),
   questionDetail: (id) => http.get(`/questions/${id}`),

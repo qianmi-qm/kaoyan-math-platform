@@ -9,6 +9,7 @@ const router = useRouter()
 
 const navs = [
   { to: '/bank', label: '题库' },
+  { to: '/photo', label: '拍照搜题' },
   { to: '/practice', label: '练习' },
   { to: '/report', label: '每日报告' },
   { to: '/review', label: '今日复习' },

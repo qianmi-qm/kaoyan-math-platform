@@ -53,6 +53,12 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com/v1}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      AI_VISION_ENABLED: ${AI_VISION_ENABLED:-true}
+      AI_VISION_BASE_URL: ${AI_VISION_BASE_URL:-https://api.openai.com/v1}
+      AI_VISION_API_KEY: ${AI_VISION_API_KEY:-}
+      AI_VISION_MODEL: ${AI_VISION_MODEL:-gpt-4o-mini}
+      AI_VISION_TIMEOUT_SECONDS: ${AI_VISION_TIMEOUT_SECONDS:-90}
+      AI_VISION_MAX_IMAGE_MB: ${AI_VISION_MAX_IMAGE_MB:-8}
       AI_DAILY_QUOTA: ${AI_DAILY_QUOTA:-20}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (at least 32 random bytes)}
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-2}

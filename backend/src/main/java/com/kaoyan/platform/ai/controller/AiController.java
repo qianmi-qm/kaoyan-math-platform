@@ -2,7 +2,9 @@ package com.kaoyan.platform.ai.controller;
 
 import com.kaoyan.platform.ai.service.AiExplanationService;
 import com.kaoyan.platform.ai.service.AiQuotaService;
+import com.kaoyan.platform.ai.service.PhotoSearchService;
 import com.kaoyan.platform.ai.vo.AiQuotaVO;
+import com.kaoyan.platform.ai.vo.PhotoSearchResult;
 import com.kaoyan.platform.common.result.Result;
 import com.kaoyan.platform.common.support.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,7 +14,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Tag(name = "AI 讲解")
@@ -22,13 +26,16 @@ public class AiController {
 
     private final AiExplanationService aiExplanationService;
     private final AiQuotaService quotaService;
+    private final PhotoSearchService photoSearchService;
     private final CurrentUser currentUser;
 
     public AiController(AiExplanationService aiExplanationService,
                         AiQuotaService quotaService,
+                        PhotoSearchService photoSearchService,
                         CurrentUser currentUser) {
         this.aiExplanationService = aiExplanationService;
         this.quotaService = quotaService;
+        this.photoSearchService = photoSearchService;
         this.currentUser = currentUser;
     }
 
@@ -44,5 +51,11 @@ public class AiController {
     @GetMapping("/quota")
     public Result<AiQuotaVO> quota() {
         return Result.ok(quotaService.quota(currentUser.getUserId()));
+    }
+
+    @Operation(summary = "拍照搜题：识别图片并返回答案/步骤")
+    @PostMapping(value = "/photo-search", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<PhotoSearchResult> photoSearch(@RequestPart("file") MultipartFile file) {
+        return Result.ok(photoSearchService.search(currentUser.getUserId(), file));
     }
 }

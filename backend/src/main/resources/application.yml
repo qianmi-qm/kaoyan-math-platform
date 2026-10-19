@@ -65,3 +65,9 @@ app:
     timeout-seconds: 60
     max-context-chars: 4000
     daily-quota: ${AI_DAILY_QUOTA:20}
+    vision-enabled: ${AI_VISION_ENABLED:true}
+    vision-base-url: ${AI_VISION_BASE_URL:https://api.openai.com/v1}
+    vision-api-key: ${AI_VISION_API_KEY:}
+    vision-model: ${AI_VISION_MODEL:gpt-4o-mini}
+    vision-timeout-seconds: ${AI_VISION_TIMEOUT_SECONDS:90}
+    vision-max-image-mb: ${AI_VISION_MAX_IMAGE_MB:8}

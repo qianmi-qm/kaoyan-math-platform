@@ -22,4 +22,12 @@ public class AiProperties {
 
     /** 拼进 prompt 的上下文字符上限，控制 token */
     private int maxContextChars = 4000;
+
+    /** 拍照搜题：OpenAI 兼容 vision 接口 */
+    private boolean visionEnabled = true;
+    private String visionBaseUrl = "";
+    private String visionApiKey = "";
+    private String visionModel = "gpt-4o-mini";
+    private int visionTimeoutSeconds = 90;
+    private int visionMaxImageMb = 8;
 }
