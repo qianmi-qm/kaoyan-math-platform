@@ -34,7 +34,8 @@ app:
   jwt:
     # 必须由环境变量提供；无默认值，缺失时应用启动失败
     secret: ${JWT_SECRET:}
-    expire-hours: ${JWT_EXPIRE_HOURS:24}
+    expire-hours: ${JWT_EXPIRE_HOURS:2}
+    refresh-expire-days: ${JWT_REFRESH_DAYS:7}
   demo-user:
     # 默认关闭；本地演示需显式开启并设置非默认密码
     enabled: ${DEMO_USER_ENABLED:false}
@@ -43,7 +44,7 @@ app:
     # 独立管理员引导；生产必须配置密码（ADMIN_REQUIRED=true 时缺失会启动失败）
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:}
-    required: ${ADMIN_REQUIRED:false}
+    required: ${ADMIN_REQUIRED:true}
   cache:
     report:
       enabled: ${REPORT_CACHE_ENABLED:true}

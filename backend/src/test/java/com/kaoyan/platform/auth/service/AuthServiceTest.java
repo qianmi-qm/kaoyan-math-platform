@@ -57,7 +57,8 @@ class AuthServiceTest {
             created.setId(2L);
             return 1;
         }).when(userMapper).insert(any(User.class));
-        when(jwtService.generate(2L, "alice")).thenReturn("jwt-token");
+        when(jwtService.generate(2L, "alice", 0)).thenReturn("jwt-token");
+        when(jwtService.generateRefresh(2L, "alice", 0)).thenReturn("refresh-token");
         when(jwtService.getExpireSeconds()).thenReturn(3600L);
 
         AuthResponse response = service.register(request, "127.0.0.1");

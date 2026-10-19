@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { authState, clearAuth, isMockMode } from './auth'
+import api from './api'
+import { authState, clearAuth, isMockMode, updateUser } from './auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,9 +17,20 @@ const navs = [
 const isLoginPage = computed(() => route.path === '/login')
 
 function logout() {
-  clearAuth()
-  router.replace('/login')
+  api.logout().catch(() => {}).finally(() => {
+    clearAuth()
+    router.replace('/login')
+  })
 }
+
+onMounted(async () => {
+  if (!authState.token || isMockMode()) return
+  try {
+    updateUser(await api.me())
+  } catch {
+    // 401 由 axios 拦截器统一跳登录
+  }
+})
 </script>
 
 <template>

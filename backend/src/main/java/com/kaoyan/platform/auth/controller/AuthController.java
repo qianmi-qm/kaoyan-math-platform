@@ -2,6 +2,7 @@ package com.kaoyan.platform.auth.controller;
 
 import com.kaoyan.platform.auth.dto.AuthResponse;
 import com.kaoyan.platform.auth.dto.LoginRequest;
+import com.kaoyan.platform.auth.dto.RefreshRequest;
 import com.kaoyan.platform.auth.dto.RegisterRequest;
 import com.kaoyan.platform.auth.dto.UserVO;
 import com.kaoyan.platform.auth.service.AuthService;
@@ -41,10 +42,23 @@ public class AuthController {
         return Result.ok(authService.login(request, clientIp(http)));
     }
 
+    @Operation(summary = "刷新 token（refresh token 轮换）")
+    @PostMapping("/refresh")
+    public Result<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        return Result.ok(authService.refresh(request));
+    }
+
     @Operation(summary = "当前登录用户")
     @GetMapping("/me")
     public Result<UserVO> me() {
         return Result.ok(authService.me());
+    }
+
+    @Operation(summary = "登出：递增 token_version，使旧 JWT 失效")
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        authService.logout();
+        return Result.ok();
     }
 
     private String clientIp(HttpServletRequest request) {

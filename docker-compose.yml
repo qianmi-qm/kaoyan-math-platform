@@ -54,12 +54,13 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-deepseek-chat}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (at least 32 random bytes)}
-      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-2}
+      JWT_REFRESH_DAYS: ${JWT_REFRESH_DAYS:-7}
       DEMO_USER_ENABLED: ${DEMO_USER_ENABLED:-false}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-      ADMIN_REQUIRED: ${ADMIN_REQUIRED:-false}
+      ADMIN_REQUIRED: ${ADMIN_REQUIRED:-true}
     ports:
       # 只绑定本机，Swagger/调试用；公网流量走 Nginx，避免直连 backend 伪造 IP 头
       - "127.0.0.1:8080:8080"

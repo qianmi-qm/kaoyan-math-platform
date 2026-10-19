@@ -17,6 +17,14 @@ public interface UserMapper {
 
     int updateRole(@Param("id") Long id, @Param("role") String role);
 
+    /** 一条 SQL 同时改密码和角色，避免出现“密码改了但角色没变”的中间态 */
+    int updatePasswordAndRole(@Param("id") Long id,
+                              @Param("passwordHash") String passwordHash,
+                              @Param("role") String role);
+
+    /** 改密/登出：递增 token_version，让该用户所有旧 JWT 失效 */
+    int bumpTokenVersion(@Param("id") Long id);
+
     /** 关闭 demo 时清掉 known demo 密码，避免“关了开关仍能登录” */
     int clearDemoUser(@Param("id") Long id);
 }

@@ -58,7 +58,8 @@ class SecurityAccessTest {
     @DisplayName("登录接口允许匿名访问")
     void loginIsPublic() throws Exception {
         when(authService.login(any(LoginRequest.class), anyString()))
-                .thenReturn(new AuthResponse("token", "Bearer", 3600, 1L, "learner", "USER"));
+                .thenReturn(new AuthResponse("token", "refresh", "Bearer", 7200,
+                        1L, "learner", "USER"));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

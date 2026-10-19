@@ -40,6 +40,8 @@
 | 2026-10-19 | v3 角色 | USER/ADMIN，题库/知识点写接口仅 ADMIN | 所有登录用户可写 | 题库是全局共享数据，必须收口写权限 |
 | 2026-10-19 | v3 演示账号 | 默认关闭；开启必须显式非默认密码，关闭时清历史密码 | 固定 learner/learner123 | 避免“关了开关仍能用默认密码登录” |
 | 2026-10-19 | v3 题目详情 | 详情接口仅 ADMIN | 所有登录用户可看答案 | 练习提交前隐藏答案，防止直接查详情作弊 |
-| 2026-10-19 | v3 登录限流 | username+IP 5 次/5 分钟 + IP 30 次/5 分钟；注册 IP 10 次/小时 | 不限制 | 先堵单实例暴力破解/批量注册；多实例换 Redis |
-| 2026-10-19 | v3 管理员引导 | `ADMIN_USERNAME / ADMIN_PASSWORD` 独立初始化 | 只靠 demo 账号 | 关掉 demo 后仍有人能管题库；`ADMIN_REQUIRED` 可强制生产配置 |
+| 2026-10-19 | v3 登录限流 | username+IP 5 次/5 分钟 + IP 30 次/5 分钟；注册 IP 10 次/小时；Redis 共享计数 | 本地内存 | 多实例共享；Redis 故障降级本地内存 |
+| 2026-10-19 | v3 管理员引导 | `ADMIN_USERNAME / ADMIN_PASSWORD` 独立初始化 | 只靠 demo 账号 | 关掉 demo 后仍有人能管题库；`ADMIN_REQUIRED` 强制生产配置 |
+| 2026-10-19 | v3 token 生命周期 | access 2h + refresh 7d；refresh 单次轮换；`token_version` 撤销 | 永久 24h access | 降低泄露窗口；登出/改密立即失效旧 token |
+| 2026-10-19 | v3 XSS | 题目 HTML 过 DOMPurify | 只靠 escapeHtml | 管理员内容也按不可信输入处理 |
 | 2026-10-19 | v3 后端端口 | 只绑定 127.0.0.1:8080 | 0.0.0.0:8080 | 公网流量只走 Nginx，降低直连伪造 IP 头绕过限流的风险 |

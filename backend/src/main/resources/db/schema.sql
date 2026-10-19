@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   username      VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(100) NULL COMMENT 'BCrypt 密码哈希；v3 认证',
   role          VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT 'USER / ADMIN',
+  token_version INT NOT NULL DEFAULT 0 COMMENT '改密/登出时递增，使旧 JWT 失效',
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB COMMENT '用户（v3 起多用户，BCrypt 密码）';
 

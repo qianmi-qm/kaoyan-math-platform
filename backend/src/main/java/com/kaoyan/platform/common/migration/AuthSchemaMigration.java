@@ -35,6 +35,10 @@ public class AuthSchemaMigration implements ApplicationRunner {
             addColumn("ALTER TABLE `user` ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER' "
                     + "COMMENT 'USER / ADMIN' AFTER password_hash", "role");
         }
+        if (!columnExists("user", "token_version")) {
+            addColumn("ALTER TABLE `user` ADD COLUMN token_version INT NOT NULL DEFAULT 0 "
+                    + "COMMENT '改密/登出时递增，使旧 JWT 失效' AFTER role", "token_version");
+        }
     }
 
     private void addColumn(String sql, String name) {

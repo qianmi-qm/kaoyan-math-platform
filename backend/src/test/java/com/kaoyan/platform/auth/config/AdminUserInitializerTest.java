@@ -58,8 +58,7 @@ class AdminUserInitializerTest {
 
         initializer.run(null);
 
-        verify(userMapper).updatePasswordHash(9L, "hash");
-        verify(userMapper).updateRole(9L, "ADMIN");
+        verify(userMapper).updatePasswordAndRole(9L, "hash", "ADMIN");
     }
 
     @Test

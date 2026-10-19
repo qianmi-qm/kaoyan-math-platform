@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify'
 import katex from 'katex'
 
 // 将文本中的 $$...$$ 替换为 KaTeX 渲染的 HTML
@@ -21,7 +22,9 @@ export function renderMath(text) {
       return '<code class="text-red-500">公式错误</code>'
     }
   })
-  return html
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true, mathMl: true, svg: true, svgFilters: true },
+  })
 }
 
 function escapeHtml(s) {

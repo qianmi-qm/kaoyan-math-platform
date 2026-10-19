@@ -57,8 +57,8 @@ public class AdminUserInitializer implements ApplicationRunner {
 
         User existing = userMapper.selectByUsername(username);
         if (existing != null) {
-            userMapper.updatePasswordHash(existing.getId(), passwordEncoder.encode(password));
-            userMapper.updateRole(existing.getId(), "ADMIN");
+            userMapper.updatePasswordAndRole(existing.getId(),
+                    passwordEncoder.encode(password), "ADMIN");
             log.info("管理员 {} 已更新密码并确保 ADMIN 角色", username);
             return;
         }

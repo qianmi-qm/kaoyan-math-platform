@@ -31,6 +31,16 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("JWT：access/refresh 类型不可混用")
+    void tokenTypesAreSeparated() {
+        JwtService jwt = service();
+        String refresh = jwt.generateRefresh(42L, "alice", 3);
+        LoginUser user = jwt.parseRefresh(refresh);
+        assertEquals(3, user.tokenVersion());
+        assertThrows(JwtException.class, () -> jwt.parse(refresh));
+    }
+
+    @Test
     @DisplayName("默认/示例 JWT secret 必须被拒绝")
     void rejectsDefaultSecret() {
         JwtProperties properties = new JwtProperties();

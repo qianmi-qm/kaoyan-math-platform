@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { authState, clearAuth } from '../auth'
+import { authState, clearAuth, setAuth } from '../auth'
 import {
   flattenKnowledgePoints,
   normalizeImportResult,
@@ -12,6 +12,8 @@ import {
 } from './normalize'
 
 export const http = axios.create({ baseURL: '/api', timeout: 15000 })
+
+let refreshPromise = null
 
 http.interceptors.request.use((config) => {
   if (authState.token) {
@@ -29,8 +31,40 @@ http.interceptors.response.use(
     }
     return body.data
   },
-  (error) => {
+  async (error) => {
     const body = error.response?.data
+    const original = error.config
+    const url = original?.url || ''
+    const shouldRefresh = error.response?.status === 401
+      && authState.refreshToken
+      && !original?._retry
+      && !url.includes('/auth/login')
+      && !url.includes('/auth/register')
+      && !url.includes('/auth/refresh')
+
+    if (shouldRefresh) {
+      original._retry = true
+      try {
+        if (!refreshPromise) {
+          refreshPromise = axios.post('/api/auth/refresh', {
+            refreshToken: authState.refreshToken,
+          }).then((resp) => {
+            if (resp.data.code !== 0) throw new Error(resp.data.message || '刷新失败')
+            setAuth(resp.data.data)
+            return resp.data.data.token
+          }).finally(() => {
+            refreshPromise = null
+          })
+        }
+        const token = await refreshPromise
+        original.headers = original.headers || {}
+        original.headers.Authorization = `Bearer ${token}`
+        return http(original)
+      } catch {
+        // fall through to clear + login
+      }
+    }
+
     if (error.response?.status === 401) {
       clearAuth()
       if (window.location.pathname !== '/login') {
@@ -47,6 +81,7 @@ export default {  // v3 认证
   login: (payload) => http.post('/auth/login', payload),
   register: (payload) => http.post('/auth/register', payload),
   me: () => http.get('/auth/me'),
+  logout: () => http.post('/auth/logout'),
 
   // L2 题库
   listQuestions: (params) => http.get('/questions', { params }).then(normalizeQuestionPage),

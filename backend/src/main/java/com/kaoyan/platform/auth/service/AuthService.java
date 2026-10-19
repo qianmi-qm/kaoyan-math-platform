@@ -2,9 +2,11 @@ package com.kaoyan.platform.auth.service;
 
 import com.kaoyan.platform.auth.dto.AuthResponse;
 import com.kaoyan.platform.auth.dto.LoginRequest;
+import com.kaoyan.platform.auth.dto.RefreshRequest;
 import com.kaoyan.platform.auth.dto.RegisterRequest;
 import com.kaoyan.platform.auth.dto.UserVO;
 import com.kaoyan.platform.auth.security.JwtService;
+import com.kaoyan.platform.auth.security.LoginUser;
 import com.kaoyan.platform.common.exception.BusinessException;
 import com.kaoyan.platform.common.result.ErrorCode;
 import com.kaoyan.platform.common.support.CurrentUser;
@@ -23,6 +25,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final CurrentUser currentUser;
     private final AuthRateLimiter rateLimiter;
+    private final String dummyHash;
 
     public AuthService(UserMapper userMapper, PasswordEncoder passwordEncoder,
                        JwtService jwtService, CurrentUser currentUser,
@@ -32,6 +35,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.currentUser = currentUser;
         this.rateLimiter = rateLimiter;
+        this.dummyHash = passwordEncoder.encode("timing-equalizer-not-a-real-password");
     }
 
     public AuthResponse register(RegisterRequest request, String ip) {
@@ -57,8 +61,13 @@ public class AuthService {
         String username = request.getUsername().trim();
         rateLimiter.checkLogin(username, ip);
         User user = userMapper.selectByUsername(username);
-        if (user == null || !StringUtils.hasText(user.getPasswordHash())
-                || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        boolean hasHash = user != null && StringUtils.hasText(user.getPasswordHash());
+        boolean matched = hasHash && passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+        if (!matched) {
+            // 用户不存在时也做一次 BCrypt，避免用响应耗时枚举用户名
+            if (!hasHash) {
+                passwordEncoder.matches(request.getPassword(), dummyHash);
+            }
             rateLimiter.onLoginFailure(username, ip);
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "用户名或密码错误");
         }
@@ -74,9 +83,29 @@ public class AuthService {
         return new UserVO(user.getId(), user.getUsername(), user.getRole());
     }
 
+    /** 服务端撤销当前用户所有 JWT；前端清 token 是第二步 */
+    public void logout() {
+        userMapper.bumpTokenVersion(currentUser.getUserId());
+    }
+
+    public AuthResponse refresh(RefreshRequest request) {
+        LoginUser parsed = jwtService.parseRefresh(request.getRefreshToken());
+        User user = userMapper.selectById(parsed.id());
+        int version = user == null || user.getTokenVersion() == null ? 0 : user.getTokenVersion();
+        if (user == null || parsed.tokenVersion() != version) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "登录已失效，请重新登录");
+        }
+        // refresh token 单次使用：轮换后旧 access/refresh 全部失效
+        userMapper.bumpTokenVersion(user.getId());
+        user.setTokenVersion(version + 1);
+        return buildResponse(user);
+    }
+
     private AuthResponse buildResponse(User user) {
-        String token = jwtService.generate(user.getId(), user.getUsername());
-        return new AuthResponse(token, "Bearer", jwtService.getExpireSeconds(),
+        int version = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
+        String token = jwtService.generate(user.getId(), user.getUsername(), version);
+        String refreshToken = jwtService.generateRefresh(user.getId(), user.getUsername(), version);
+        return new AuthResponse(token, refreshToken, "Bearer", jwtService.getExpireSeconds(),
                 user.getId(), user.getUsername(), user.getRole());
     }
 }

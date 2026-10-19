@@ -10,5 +10,7 @@ public class JwtProperties {
     /** HMAC 密钥，至少 32 字节；生产必须用环境变量覆盖 */
     private String secret;
 
-    private long expireHours = 24;
+    private long expireHours = 2;
+
+    private long refreshExpireDays = 7;
 }
