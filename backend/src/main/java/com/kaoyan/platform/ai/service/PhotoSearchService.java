@@ -6,7 +6,6 @@ import com.kaoyan.platform.ai.config.AiProperties;
 import com.kaoyan.platform.ai.vo.PhotoSearchResult;
 import com.kaoyan.platform.common.exception.BusinessException;
 import com.kaoyan.platform.common.result.ErrorCode;
-import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -15,12 +14,9 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 /**
@@ -37,14 +33,14 @@ public class PhotoSearchService {
     private final AiProperties properties;
     private final AiQuotaService quotaService;
     private final ObjectMapper objectMapper;
-    private final WebClient.Builder webClientBuilder;
+    private final AiChatClient aiChatClient;
 
     public PhotoSearchService(AiProperties properties, AiQuotaService quotaService,
-                              ObjectMapper objectMapper, WebClient.Builder webClientBuilder) {
+                              ObjectMapper objectMapper, AiChatClient aiChatClient) {
         this.properties = properties;
         this.quotaService = quotaService;
         this.objectMapper = objectMapper;
-        this.webClientBuilder = webClientBuilder;
+        this.aiChatClient = aiChatClient;
     }
 
     public PhotoSearchResult search(Long userId, MultipartFile file) {
@@ -110,17 +106,9 @@ public class PhotoSearchService {
                         Map.of("type", "image_url", "image_url", Map.of("url", dataUrl))
                 ))));
 
-        WebClient client = webClientBuilder.baseUrl(baseUrl)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                .build();
         try {
-            return client.post()
-                    .uri(URI.create(baseUrl.replaceAll("/+$", "") + "/chat/completions"))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(properties.getVisionTimeoutSeconds()));
+            return aiChatClient.postJson(baseUrl, apiKey, body,
+                    Duration.ofSeconds(properties.getVisionTimeoutSeconds()));
         } catch (WebClientResponseException e) {
             log.warn("vision API 返回 {}：{}", e.getStatusCode(),
                     e.getResponseBodyAsString().substring(0,
@@ -207,16 +195,8 @@ public class PhotoSearchService {
                 Map.of("role", "user", "content", "求下面题目的最终答案：\n" + content)
         ));
         try {
-            WebClient client = webClientBuilder.baseUrl(base)
-                    .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + key)
-                    .build();
-            JsonNode response = client.post()
-                    .uri(URI.create(base.replaceAll("/+$", "") + "/chat/completions"))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(properties.getTimeoutSeconds()));
+            JsonNode response = aiChatClient.postJson(base, key, body,
+                    Duration.ofSeconds(properties.getTimeoutSeconds()));
             if (response == null) return null;
             String result = response.path("choices").path(0).path("message")
                     .path("content").asText("").trim();

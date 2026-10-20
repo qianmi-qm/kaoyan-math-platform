@@ -14,6 +14,7 @@ import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionKpRow;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
 import com.kaoyan.platform.report.cache.ReportCacheService;
+import com.kaoyan.platform.report.domain.MasteryAggregator;
 import com.kaoyan.platform.report.domain.MasteryCalculator;
 import com.kaoyan.platform.report.entity.DailyReport;
 import com.kaoyan.platform.report.mapper.DailyReportMapper;
@@ -150,13 +151,7 @@ public class ReportServiceImpl implements ReportService {
                 continue;
             }
             List<PracticeRecord> recent = recentByQuestion.getOrDefault(record.getQuestionId(), List.of());
-            int correct = (int) recent.stream().filter(r -> Boolean.TRUE.equals(r.getIsCorrect())).count();
-            double mastery = MasteryCalculator.questionMastery(
-                    recent.size(),
-                    correct,
-                    record.getDurationSec() == null ? 0 : record.getDurationSec(),
-                    MasteryCalculator.baselineSeconds(question.getDifficulty()),
-                    streak(recent));
+            double mastery = MasteryAggregator.questionMastery(question, recent);
 
             List<Long> kpIds = kpIdsByQuestion.getOrDefault(question.getId(), List.of());
             for (Long kpId : kpIds) {
@@ -183,12 +178,7 @@ public class ReportServiceImpl implements ReportService {
         }
         report.setKpMastery(writeJson(masteryList));
         report.setWeakPoints(writeJson(weakPoints));
-        int totalWeight = masteryList.stream().mapToInt(KpMasteryVO::getQuestionCount).sum();
-        double overall = totalWeight == 0 ? 0.0
-                : masteryList.stream()
-                .mapToDouble(m -> m.getMastery() * m.getQuestionCount())
-                .sum() / totalWeight;
-        report.setOverallMastery(overall);
+        report.setOverallMastery(MasteryAggregator.overall(masteryList));
         return report;
     }
 
@@ -202,18 +192,6 @@ public class ReportServiceImpl implements ReportService {
             }
         }
         return latest;
-    }
-
-    /** 连续答对：入参最新在前，从最近一次往回数到第一次答错为止 */
-    private static int streak(List<PracticeRecord> recentDesc) {
-        int streak = 0;
-        for (PracticeRecord record : recentDesc) {
-            if (!Boolean.TRUE.equals(record.getIsCorrect())) {
-                break;
-            }
-            streak++;
-        }
-        return streak;
     }
 
     /**

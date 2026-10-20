@@ -12,7 +12,7 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI().info(new Info()
                 .title("考研高数学习平台 API")
-                .description("v1 骨架：所有业务接口返回 code=5010，等待逐层实现")
-                .version("v1"));
+                .description("考研数学学习平台：认证、题库、练习、报告、复习、AI 拍照搜题")
+                .version("v3.10"));
     }
 }

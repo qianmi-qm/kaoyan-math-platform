@@ -12,7 +12,6 @@ public enum ErrorCode {
     TOO_MANY_REQUESTS(4290, "请求过于频繁，请稍后再试"),
     NOT_FOUND(5001, "资源不存在"),
     CONFLICT(4090, "资源冲突"),
-    NOT_IMPLEMENTED(5010, "骨架未实现：等待你来完成"),
     SYSTEM_ERROR(9999, "系统内部错误");
 
     private final int code;

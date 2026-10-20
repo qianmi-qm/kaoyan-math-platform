@@ -11,7 +11,9 @@ import java.util.List;
  *   speed    = clamp(基准用时 / 实际用时, 0, 1)，基准：易 60s / 中 120s / 难 240s
  *   streak   = min(连续答对次数 / 3, 1)
  *
- * L4 学习任务：实现以下全部方法，直到 MasteryCalculatorTest 全绿。
+ * 纯函数、无 Spring 依赖，因此可以用毫秒级单测验证公式。
+ *
+ * 注意：这是“题目级掌握度”；知识点/整体聚合在 MasteryAggregator。
  */
 public final class MasteryCalculator {
 

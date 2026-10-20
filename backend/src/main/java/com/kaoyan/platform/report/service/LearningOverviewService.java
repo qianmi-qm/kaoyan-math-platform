@@ -8,6 +8,7 @@ import com.kaoyan.platform.question.entity.Question;
 import com.kaoyan.platform.question.mapper.KnowledgePointMapper;
 import com.kaoyan.platform.question.mapper.QuestionKpRow;
 import com.kaoyan.platform.question.mapper.QuestionMapper;
+import com.kaoyan.platform.report.domain.MasteryAggregator;
 import com.kaoyan.platform.report.domain.MasteryCalculator;
 import com.kaoyan.platform.report.vo.ActionSuggestionVO;
 import com.kaoyan.platform.report.vo.BreakdownVO;
@@ -138,17 +139,7 @@ public class LearningOverviewService {
         for (Map.Entry<Long, List<PracticeRecord>> entry : gradedByQuestion.entrySet()) {
             Question question = questionById.get(entry.getKey());
             if (question == null) continue;
-            List<PracticeRecord> recent = entry.getValue().stream()
-                    .sorted(Comparator.comparing(PracticeRecord::getId).reversed())
-                    .limit(MasteryCalculator.RECENT_WINDOW)
-                    .toList();
-            int recentCorrect = (int) recent.stream()
-                    .filter(r -> Boolean.TRUE.equals(r.getIsCorrect()))
-                    .count();
-            int duration = recent.get(0).getDurationSec() == null ? 0 : recent.get(0).getDurationSec();
-            double mastery = MasteryCalculator.questionMastery(
-                    recent.size(), recentCorrect, duration,
-                    MasteryCalculator.baselineSeconds(question.getDifficulty()), streak(recent));
+            double mastery = MasteryAggregator.questionMastery(question, entry.getValue());
             for (Long kpId : kpIdsByQuestion.getOrDefault(question.getId(), List.of())) {
                 KnowledgePoint kp = kpById.get(kpId);
                 if (kp != null) kpNames.put(kpId, kp.getName());
@@ -173,10 +164,7 @@ public class LearningOverviewService {
         weakPoints.sort(Comparator.comparingDouble(KpMasteryVO::getMastery));
         vo.setKpMastery(masteryList);
         vo.setWeakPoints(weakPoints);
-        int totalWeight = masteryList.stream().mapToInt(KpMasteryVO::getQuestionCount).sum();
-        vo.setOverallMastery(totalWeight == 0 ? 0.0
-                : masteryList.stream().mapToDouble(m -> m.getMastery() * m.getQuestionCount()).sum()
-                / totalWeight);
+        vo.setOverallMastery(MasteryAggregator.overall(masteryList));
 
         vo.setByType(breakdown(records, questionById, true));
         vo.setByDifficulty(breakdown(records, questionById, false));
@@ -255,14 +243,5 @@ public class LearningOverviewService {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private static int streak(List<PracticeRecord> recentDesc) {
-        int streak = 0;
-        for (PracticeRecord record : recentDesc) {
-            if (!Boolean.TRUE.equals(record.getIsCorrect())) break;
-            streak++;
-        }
-        return streak;
     }
 }

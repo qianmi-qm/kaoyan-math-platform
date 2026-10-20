@@ -25,12 +25,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
@@ -52,7 +49,7 @@ public class AiExplanationService {
     private final AiProperties properties;
     private final CurrentUser currentUser;
     private final ObjectMapper objectMapper;
-    private final WebClient.Builder webClientBuilder;
+    private final AiChatClient aiChatClient;
     private final ExecutorService executor = Executors.newFixedThreadPool(4, runnable -> {
         Thread thread = new Thread(runnable, "ai-explain");
         thread.setDaemon(true);
@@ -67,7 +64,7 @@ public class AiExplanationService {
                                 AiProperties properties,
                                 CurrentUser currentUser,
                                 ObjectMapper objectMapper,
-                                WebClient.Builder webClientBuilder) {
+                                AiChatClient aiChatClient) {
         this.practiceRecordMapper = practiceRecordMapper;
         this.questionMapper = questionMapper;
         this.knowledgePointMapper = knowledgePointMapper;
@@ -76,7 +73,7 @@ public class AiExplanationService {
         this.properties = properties;
         this.currentUser = currentUser;
         this.objectMapper = objectMapper;
-        this.webClientBuilder = webClientBuilder;
+        this.aiChatClient = aiChatClient;
     }
 
     public void stream(Long recordId, SseEmitter emitter) {
@@ -141,11 +138,11 @@ public class AiExplanationService {
         body.put("temperature", 0.3);
         body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
 
-        Disposable subscription = webClientBuilder.build()
+        Disposable subscription = aiChatClient
+                .webClient(properties.getBaseUrl(), properties.getApiKey())
                 .post()
-                .uri(java.net.URI.create(chatCompletionsUrl()))
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + properties.getApiKey())
-                .contentType(MediaType.APPLICATION_JSON)
+                .uri(java.net.URI.create(aiChatClient.completionsUrl(properties.getBaseUrl())))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
                 .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {
@@ -204,10 +201,6 @@ public class AiExplanationService {
 
         emitter.onCompletion(subscription::dispose);
         emitter.onTimeout(subscription::dispose);
-    }
-
-    private String chatCompletionsUrl() {
-        return properties.getBaseUrl().replaceAll("/+$", "") + "/chat/completions";
     }
 
     private String extractDelta(String data) {

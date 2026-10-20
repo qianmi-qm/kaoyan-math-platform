@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
 class PhotoSearchServiceTest {
@@ -21,7 +20,7 @@ class PhotoSearchServiceTest {
     @Mock
     private AiQuotaService quotaService;
     @Mock
-    private WebClient.Builder webClientBuilder;
+    private AiChatClient aiChatClient;
 
     private PhotoSearchService service;
     private AiProperties properties;
@@ -32,7 +31,7 @@ class PhotoSearchServiceTest {
         properties.setVisionApiKey("");
         properties.setVisionBaseUrl("https://api.example.com/v1");
         service = new PhotoSearchService(properties, quotaService,
-                new ObjectMapper(), webClientBuilder);
+                new ObjectMapper(), aiChatClient);
     }
 
     @Test

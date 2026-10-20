@@ -14,11 +14,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 /**
- * 骨架冒烟测试（应当前就全绿）：
- * 证明通用层（Result / 异常处理 / 常量）本身可用。
- * 它是你搭好环境后的第一个检查点：本类绿、另外两个算法测试红 = 骨架状态正确。
+ * 通用层冒烟测试：Result / 异常映射 / 复习常量。
+ * 不依赖数据库，适合作为第一次 clone 后的快速自检。
  */
-@DisplayName("骨架冒烟")
+@DisplayName("通用层冒烟")
 class SkeletonSmokeTest {
 
     @Test
@@ -35,11 +34,11 @@ class SkeletonSmokeTest {
     void businessExceptionHandled() {
         GlobalExceptionHandler handler = new GlobalExceptionHandler();
         ResponseEntity<Result<Void>> response = handler.handleBusiness(
-                new BusinessException(ErrorCode.NOT_IMPLEMENTED, "L2 待实现"));
+                new BusinessException(ErrorCode.PARAM_ERROR, "参数错误"));
         Result<Void> r = response.getBody();
-        assertEquals(HttpStatus.NOT_IMPLEMENTED, response.getStatusCode());
-        assertEquals(5010, r.getCode());
-        assertEquals("L2 待实现", r.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(4001, r.getCode());
+        assertEquals("参数错误", r.getMessage());
         assertNull(r.getData());
     }
 

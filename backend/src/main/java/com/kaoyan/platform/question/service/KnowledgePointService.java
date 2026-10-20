@@ -6,8 +6,8 @@ import java.util.List;
 public interface KnowledgePointService {
 
     /**
-     * L1 待实现：从 selectAll() 的平铺列表组装成树（parentId 挂 children）。
-     * 思考：为什么组树放在 Java 内存里做而不是用递归 SQL？（决策日志素材）
+     * 知识点树：一次查全量平铺列表，再在内存按 parentId 组装。
+     * 知识点是百级数据，内存组树比递归 SQL 更简单，也避免多次查库。
      */
     List<KnowledgePointVO> tree();
 

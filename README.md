@@ -1,8 +1,8 @@
 # 考研高等数学学习平台（v3）
 
-Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员后台、题库编辑、拍照搜题/搜题历史/错题本、同类题练习、token 刷新/撤销、Redis 限流、AI 每日配额、修改密码、邮箱验证与找回密码**；66 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
+Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员后台、题库编辑、拍照搜题/搜题历史/错题本、同类题练习、token 刷新/撤销、Redis 限流、AI 每日配额、修改密码、邮箱验证与找回密码**；69 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
-> 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)。
+> 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)，从零阅读路线见 [`docs/LEARNING_GUIDE.md`](docs/LEARNING_GUIDE.md)。
 
 配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 
@@ -14,7 +14,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 | `SkeletonSmokeTest`（4 个用例） | 全绿 |
 | `MasteryCalculatorTest`（10 个用例） | 全绿 |
 | `EbbinghausSchedulerTest`（8 个用例） | 全绿 |
-| `mvn test` | 66/66 通过 |
+| `mvn test` | 69/69 通过 |
 | v1 业务链路（L1～L6） | 通过（见 `docs/VERIFICATION.md`） |
 | v3 认证 / 多用户 | 登录、注册、401、user_id 隔离通过 |
 | v3 权限 | 普通用户题库写接口/详情 403；管理员可导入 |
@@ -35,7 +35,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 | AI 错题讲解 | SSE 首调 / 二次读库 / 无 key 降级通过 |
 | Docker Compose | 四容器 `up`（3307 / 8080 / 5173；Redis 内部） |
 
-红灯不是缺陷，是完成定义——现在 66 个测试已经全部转绿。
+红灯不是缺陷，是完成定义——现在 69 个测试已经全部转绿。
 
 ## 验证记录（2026-10-19）
 
@@ -43,7 +43,7 @@ Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2�
 
 | 项 | 结果 |
 |----|------|
-| 单元测试 | 66/66 通过 |
+| 单元测试 | 69/69 通过 |
 | v3 认证 | 无 token 401；learner + 本地配置密码登录 200；错密码 401 |
 | v3 权限 | bob（USER）创建/导入题目 403；learner（ADMIN）可管理；详情接口仅 ADMIN |
 | v3 限流 | 同一账号+IP 5 次密码错误后第 6 次 429；跨账号同 IP 30 次也 429 |
@@ -130,7 +130,7 @@ docker compose up -d --build
 ```bash
 cd backend
 mvn compile        # 编译
-mvn test           # 66 个验收测试全绿
+mvn test           # 69 个验收测试全绿
 ```
 
 ## 目录结构
@@ -149,7 +149,7 @@ backend/
   src/main/resources/
     db/schema.sql        # 11 张表 DDL + 初始数据
     mapper/*.xml         # MyBatis SQL
-  src/test/java/         # 验收测试：66 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3 安全/配额/邮件/拍照/历史）
+  src/test/java/         # 验收测试：69 个用例（冒烟 + 掌握度 + 复习调度 + mapper XML + 练习 + v2/v3 安全/配额/邮件/拍照/历史）
 frontend/
   src/views/     # 六页面（登录/题库/练习/报告/复习/账号）+ 管理员用户页
   src/auth.js    # token 持久化 / 登录态 / mock 模式 / 多标签同步

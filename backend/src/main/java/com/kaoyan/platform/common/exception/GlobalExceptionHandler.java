@@ -28,7 +28,6 @@ public class GlobalExceptionHandler {
             case TOO_MANY_REQUESTS -> HttpStatus.TOO_MANY_REQUESTS;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
-            case NOT_IMPLEMENTED -> HttpStatus.NOT_IMPLEMENTED;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
         return ResponseEntity.status(status)
