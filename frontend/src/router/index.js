@@ -17,6 +17,7 @@ const router = createRouter({
     { path: '/photo/history', component: () => import('../views/PhotoHistoryView.vue') },
     { path: '/practice', component: () => import('../views/PracticeView.vue') },
     { path: '/report', component: () => import('../views/ReportView.vue') },
+    { path: '/report/overview', component: () => import('../views/ReportOverviewView.vue') },
     { path: '/review', component: () => import('../views/ReviewView.vue') },
     { path: '/account', component: () => import('../views/AccountView.vue') },
     { path: '/admin', component: () => import('../views/AdminUsersView.vue'), meta: { admin: true } },

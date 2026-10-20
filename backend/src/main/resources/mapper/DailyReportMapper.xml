@@ -7,25 +7,33 @@
     <result property="userId" column="user_id"/>
     <result property="reportDate" column="report_date"/>
     <result property="totalCount" column="total_count"/>
+    <result property="submittedCount" column="submitted_count"/>
+    <result property="gradedCount" column="graded_count"/>
     <result property="correctCount" column="correct_count"/>
     <result property="avgDurationSec" column="avg_duration_sec"/>
+    <result property="overallMastery" column="overall_mastery"/>
     <result property="kpMastery" column="kp_mastery"/>
     <result property="weakPoints" column="weak_points"/>
     <result property="createdAt" column="created_at"/>
   </resultMap>
 
-  <sql id="cols">id, user_id, report_date, total_count, correct_count, avg_duration_sec, kp_mastery, weak_points, created_at</sql>
+  <sql id="cols">id, user_id, report_date, total_count, submitted_count, graded_count, correct_count, avg_duration_sec, overall_mastery, kp_mastery, weak_points, created_at</sql>
 
   <!-- 幂等落库：UNIQUE(user_id, report_date) 兜底，并发下不会插出两份 -->
   <insert id="upsert" parameterType="com.kaoyan.platform.report.entity.DailyReport">
     INSERT INTO daily_report
-      (user_id, report_date, total_count, correct_count, avg_duration_sec, kp_mastery, weak_points)
+      (user_id, report_date, total_count, submitted_count, graded_count, correct_count,
+       avg_duration_sec, overall_mastery, kp_mastery, weak_points)
     VALUES
-      (#{userId}, #{reportDate}, #{totalCount}, #{correctCount}, #{avgDurationSec}, #{kpMastery}, #{weakPoints}) AS incoming
+      (#{userId}, #{reportDate}, #{totalCount}, #{submittedCount}, #{gradedCount}, #{correctCount},
+       #{avgDurationSec}, #{overallMastery}, #{kpMastery}, #{weakPoints}) AS incoming
     ON DUPLICATE KEY UPDATE
       total_count      = incoming.total_count,
+      submitted_count  = incoming.submitted_count,
+      graded_count     = incoming.graded_count,
       correct_count    = incoming.correct_count,
       avg_duration_sec = incoming.avg_duration_sec,
+      overall_mastery  = incoming.overall_mastery,
       kp_mastery       = incoming.kp_mastery,
       weak_points      = incoming.weak_points
   </insert>

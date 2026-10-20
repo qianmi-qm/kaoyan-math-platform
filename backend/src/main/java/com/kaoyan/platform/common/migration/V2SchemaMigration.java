@@ -36,6 +36,45 @@ public class V2SchemaMigration implements ApplicationRunner {
         }
         createAiUsageTable();
         createPhotoSearchTable();
+        migrateDailyReport();
+    }
+
+    private void migrateDailyReport() {
+        if (!tableExists("daily_report")) {
+            return;
+        }
+        addDailyReportColumn("submitted_count",
+                "ALTER TABLE daily_report ADD COLUMN submitted_count INT NOT NULL DEFAULT 0 AFTER total_count");
+        addDailyReportColumn("graded_count",
+                "ALTER TABLE daily_report ADD COLUMN graded_count INT NOT NULL DEFAULT 0 AFTER submitted_count");
+        addDailyReportColumn("overall_mastery",
+                "ALTER TABLE daily_report ADD COLUMN overall_mastery DECIMAL(6,4) NOT NULL DEFAULT 0 AFTER avg_duration_sec");
+        try {
+            jdbc.update("""
+                    UPDATE daily_report
+                    SET submitted_count = total_count
+                    WHERE submitted_count = 0 AND total_count > 0
+                    """);
+            jdbc.update("""
+                    UPDATE daily_report
+                    SET graded_count = submitted_count
+                    WHERE graded_count = 0 AND submitted_count > 0
+                    """);
+        } catch (DataAccessException e) {
+            log.warn("v2 migration: 回填 daily_report 计数失败：{}", e.getMessage());
+        }
+    }
+
+    private void addDailyReportColumn(String name, String sql) {
+        if (columnExists("daily_report", name)) {
+            return;
+        }
+        try {
+            jdbc.execute(sql);
+            log.info("v2 migration: daily_report.{} 已添加", name);
+        } catch (DataAccessException e) {
+            log.warn("v2 migration: 添加 daily_report.{} 失败：{}", name, e.getMessage());
+        }
     }
 
     private void addSubmittedAnswerColumn() {

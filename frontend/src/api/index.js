@@ -140,6 +140,8 @@ export default {  // v3 认证
     http.get('/reports/daily', { params: { date } }).then(normalizeReport),
   reportRange: (from, to) =>
     http.get('/reports/daily/range', { params: { from, to } }).then(normalizeReportRange),
+  learningOverview: (days = 30) =>
+    http.get('/reports/overview', { params: { days } }),
 
   // L5 复习
   todayReviews: () =>

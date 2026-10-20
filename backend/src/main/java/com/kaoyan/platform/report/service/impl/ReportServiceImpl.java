@@ -104,6 +104,8 @@ public class ReportServiceImpl implements ReportService {
         report.setUserId(userId);
         report.setReportDate(date);
         report.setTotalCount(agg == null || agg.getTotalCount() == null ? 0 : agg.getTotalCount());
+        report.setSubmittedCount(agg == null || agg.getSubmittedCount() == null ? 0 : agg.getSubmittedCount());
+        report.setGradedCount(agg == null || agg.getGradedCount() == null ? 0 : agg.getGradedCount());
         report.setCorrectCount(agg == null || agg.getCorrectCount() == null ? 0 : agg.getCorrectCount());
         report.setAvgDurationSec(agg == null || agg.getAvgDurationSec() == null ? 0 : agg.getAvgDurationSec());
 
@@ -140,6 +142,9 @@ public class ReportServiceImpl implements ReportService {
         Map<Long, List<MasteryCalculator.KpItem>> itemsByKp = new LinkedHashMap<>();
         Map<Long, String> kpNames = new HashMap<>();
         for (PracticeRecord record : latest.values()) {
+            if (record.getSubmittedAt() == null) {
+                continue;
+            }
             Question question = questionById.get(record.getQuestionId());
             if (question == null) {
                 continue;
@@ -178,6 +183,12 @@ public class ReportServiceImpl implements ReportService {
         }
         report.setKpMastery(writeJson(masteryList));
         report.setWeakPoints(writeJson(weakPoints));
+        int totalWeight = masteryList.stream().mapToInt(KpMasteryVO::getQuestionCount).sum();
+        double overall = totalWeight == 0 ? 0.0
+                : masteryList.stream()
+                .mapToDouble(m -> m.getMastery() * m.getQuestionCount())
+                .sum() / totalWeight;
+        report.setOverallMastery(overall);
         return report;
     }
 
@@ -230,12 +241,19 @@ public class ReportServiceImpl implements ReportService {
     private DailyReportVO toVO(DailyReport report) {
         DailyReportVO vo = new DailyReportVO();
         vo.setReportDate(report.getReportDate());
-        vo.setTotalCount(report.getTotalCount());
-        vo.setCorrectCount(report.getCorrectCount());
-        vo.setCorrectRate(report.getTotalCount() == 0
-                ? 0.0
-                : (double) report.getCorrectCount() / report.getTotalCount());
-        vo.setAvgDurationSec(report.getAvgDurationSec());
+        int total = report.getTotalCount() == null ? 0 : report.getTotalCount();
+        int submitted = report.getSubmittedCount() == null
+                ? total : report.getSubmittedCount();
+        int graded = report.getGradedCount() == null
+                ? submitted : report.getGradedCount();
+        vo.setTotalCount(total);
+        vo.setSubmittedCount(submitted);
+        vo.setGradedCount(graded);
+        vo.setPendingCount(Math.max(0, total - submitted));
+        vo.setCorrectCount(report.getCorrectCount() == null ? 0 : report.getCorrectCount());
+        vo.setCorrectRate(graded == 0 ? 0.0 : (double) vo.getCorrectCount() / graded);
+        vo.setAvgDurationSec(report.getAvgDurationSec() == null ? 0 : report.getAvgDurationSec());
+        vo.setOverallMastery(report.getOverallMastery() == null ? 0.0 : report.getOverallMastery());
         vo.setKpMastery(readJson(report.getKpMastery()));
         vo.setWeakPoints(readJson(report.getWeakPoints()));
         return vo;

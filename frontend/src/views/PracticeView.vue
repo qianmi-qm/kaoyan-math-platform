@@ -242,6 +242,12 @@ onMounted(async () => {
   const questionId = Number(route.query.questionId)
   if (Number.isFinite(questionId) && questionId > 0) {
     await startPractice(questionId)
+    return
+  }
+  const kpId = Number(route.query.kpId)
+  if (Number.isFinite(kpId) && kpId > 0) {
+    mode.value = 'kp'
+    selectedKp.value = kpId
   }
 })
 

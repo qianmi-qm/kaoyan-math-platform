@@ -52,6 +52,13 @@
     ORDER BY id
   </select>
 
+  <select id="selectByUserAndDateRange" resultMap="recordMap">
+    SELECT <include refid="cols"/>
+    FROM practice_record
+    WHERE user_id = #{userId} AND practice_date BETWEEN #{from} AND #{to}
+    ORDER BY id
+  </select>
+
   <!-- 掌握度输入：只要已判分的记录（未自评的 NULL 不参与正确率），最新在前 -->
   <select id="selectRecentByQuestion" resultMap="recordMap">
     SELECT <include refid="cols"/>
@@ -97,6 +104,8 @@
   <select id="selectDailyAgg" resultType="com.kaoyan.platform.practice.mapper.PracticeRecordMapper$DailyAgg">
     SELECT
       COUNT(*) AS total_count,
+      COUNT(submitted_at) AS submitted_count,
+      COUNT(is_correct) AS graded_count,
       COUNT(is_correct = 1 OR NULL) AS correct_count,
       ROUND(AVG(duration_sec)) AS avg_duration_sec
     FROM practice_record

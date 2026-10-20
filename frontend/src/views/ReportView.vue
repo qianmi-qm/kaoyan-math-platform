@@ -161,13 +161,19 @@ watch(reportDate, async () => {
     </div>
     <!-- 顶部日期选择 + 概览卡片 -->
     <section class="bg-white rounded-xl border border-slate-200 p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold">每日学习报告</h2>
-        <input
-          type="date"
-          v-model="reportDate"
-          class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-        >
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-bold">每日学习报告</h2>
+          <p class="text-xs text-slate-400 mt-0.5">今日数据实时计算；历史日期读取当天快照</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <RouterLink to="/report/overview" class="btn-secondary !px-3 !py-1.5 text-xs">近 30 天整体分析</RouterLink>
+          <input
+            type="date"
+            v-model="reportDate"
+            class="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+          >
+        </div>
       </div>
 
       <div v-if="loading" class="text-center py-8 text-slate-400">加载中...</div>
@@ -175,25 +181,30 @@ watch(reportDate, async () => {
         <div class="p-4 bg-indigo-50 rounded-xl">
           <div class="text-xs text-indigo-600 mb-1">练习题数</div>
           <div class="text-2xl font-bold text-indigo-700">{{ report.totalCount }}</div>
-          <div class="text-xs text-indigo-500 mt-1">答对 {{ report.correctCount }} 题</div>
+          <div class="text-xs text-indigo-500 mt-1">已提交 {{ report.submittedCount ?? report.totalCount }} · 待提交 {{ report.pendingCount ?? 0 }}</div>
         </div>
         <div class="p-4 bg-emerald-50 rounded-xl">
           <div class="text-xs text-emerald-600 mb-1">正确率</div>
           <div class="text-2xl font-bold text-emerald-700">{{ Math.round(report.correctRate * 100) }}%</div>
           <div class="text-xs text-emerald-500 mt-1">
-            {{ rateDelta === null ? '暂无对比' : `较上一日 ${rateDelta >= 0 ? '+' : ''}${(rateDelta * 100).toFixed(1)}%` }}
+            有效判分 {{ report.gradedCount ?? report.submittedCount ?? 0 }} 题
+            <span v-if="rateDelta !== null" class="ml-1">· 较上一日 {{ rateDelta >= 0 ? '+' : '' }}{{ (rateDelta * 100).toFixed(1) }}%</span>
           </div>
         </div>
         <div class="p-4 bg-amber-50 rounded-xl">
           <div class="text-xs text-amber-600 mb-1">平均用时</div>
           <div class="text-2xl font-bold text-amber-700">{{ report.avgDurationSec }}<span class="text-sm">秒</span></div>
-          <div class="text-xs text-amber-500 mt-1">每题平均</div>
+          <div class="text-xs text-amber-500 mt-1">已提交题平均</div>
         </div>
         <div class="p-4 bg-violet-50 rounded-xl">
           <div class="text-xs text-violet-600 mb-1">综合掌握度</div>
           <div class="text-2xl font-bold text-violet-700">{{ Math.round(report.avgMastery * 100) }}%</div>
-          <div class="text-xs text-violet-500 mt-1">正确率×速度×连对</div>
+          <div class="text-xs text-violet-500 mt-1">按题量加权 · 非等权平均</div>
         </div>
+      </div>
+      <div v-if="report && report.totalCount === 0" class="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        这天还没有练习记录。去题库做一组题，报告才有数据。
+        <RouterLink to="/practice" class="ml-1 font-medium underline">开始练习</RouterLink>
       </div>
     </section>
 
@@ -206,7 +217,10 @@ watch(reportDate, async () => {
 
       <section class="bg-white rounded-xl border border-slate-200 p-5">
         <h3 class="font-medium text-slate-700 mb-3">知识点掌握雷达</h3>
-        <div id="radar-chart" class="h-64 w-full"></div>
+        <div v-if="(report?.kpMasteryList || []).length >= 3" id="radar-chart" class="h-64 w-full"></div>
+        <div v-else class="flex h-64 items-center justify-center rounded-xl bg-slate-50 text-center text-xs leading-5 text-slate-400">
+          至少练过 3 个知识点<br />才能画雷达图
+        </div>
       </section>
     </div>
 
@@ -223,11 +237,20 @@ watch(reportDate, async () => {
             <div class="font-medium text-rose-800">{{ wp.kpName }}</div>
             <div class="text-xs text-rose-600">已练习 {{ wp.questionCount }} 题</div>
           </div>
-          <div class="text-right">
-            <div class="text-lg font-bold text-rose-700">{{ Math.round(wp.mastery * 100) }}%</div>
-            <div class="text-xs text-rose-500">掌握度</div>
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <div class="text-lg font-bold text-rose-700">{{ Math.round(wp.mastery * 100) }}%</div>
+              <div class="text-xs text-rose-500">掌握度</div>
+            </div>
+            <RouterLink
+              :to="{ path: '/practice', query: { kpId: wp.kpId } }"
+              class="rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-rose-600 ring-1 ring-rose-200 hover:bg-rose-100"
+            >去练</RouterLink>
           </div>
         </div>
+      </div>
+      <div v-else-if="(report?.kpMasteryList || []).some(k => k.mastery < 0.6)" class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+        有知识点低于 60%，但练习量还不够 3 题，暂不纳入薄弱点。先多练几道再判断。
       </div>
       <div v-else class="text-center py-8 text-slate-400 text-sm">暂无薄弱点，继续保持！</div>
     </section>

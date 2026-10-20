@@ -74,7 +74,7 @@ export function normalizeReport(raw) {
     kpMastery,
     kpMasteryList: kpMastery,
     weakPoints,
-    avgMastery: raw.avgMastery ?? computedAverage,
+    avgMastery: raw.overallMastery > 0 ? raw.overallMastery : computedAverage,
   }
 }
 

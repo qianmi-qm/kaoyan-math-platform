@@ -1,8 +1,10 @@
 package com.kaoyan.platform.report.controller;
 
 import com.kaoyan.platform.common.result.Result;
+import com.kaoyan.platform.report.service.LearningOverviewService;
 import com.kaoyan.platform.report.service.ReportService;
 import com.kaoyan.platform.report.vo.DailyReportVO;
+import com.kaoyan.platform.report.vo.LearningOverviewVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportController {
 
     private final ReportService reportService;
+    private final LearningOverviewService overviewService;
 
-    public ReportController(ReportService reportService) {
+    public ReportController(ReportService reportService, LearningOverviewService overviewService) {
         this.reportService = reportService;
+        this.overviewService = overviewService;
     }
 
     @Operation(summary = "某日报告（无则现场生成并保存快照）")
@@ -29,6 +33,12 @@ public class ReportController {
     public Result<DailyReportVO> daily(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return Result.ok(reportService.getDaily(date));
+    }
+
+    @Operation(summary = "近 N 天整体学习分析")
+    @GetMapping("/overview")
+    public Result<LearningOverviewVO> overview(@RequestParam(defaultValue = "30") int days) {
+        return Result.ok(overviewService.overview(days));
     }
 
     @Operation(summary = "报告区间查询（趋势图数据源）")

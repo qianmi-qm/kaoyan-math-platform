@@ -22,6 +22,10 @@ public interface PracticeRecordMapper {
     /** 按用户+日期查记录（联合索引 idx_user_date 完全命中） */
     List<PracticeRecord> selectByUserAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
 
+    List<PracticeRecord> selectByUserAndDateRange(@Param("userId") Long userId,
+                                                  @Param("from") LocalDate from,
+                                                  @Param("to") LocalDate to);
+
     /** 掌握度输入：某题最近 N 次作答（is_correct 非 null） */
     List<PracticeRecord> selectRecentByQuestion(@Param("userId") Long userId,
                                                 @Param("questionId") Long questionId,
@@ -38,6 +42,8 @@ public interface PracticeRecordMapper {
     @lombok.Data
     class DailyAgg {
         private Integer totalCount;
+        private Integer submittedCount;
+        private Integer gradedCount;
         private Integer correctCount;
         private Integer avgDurationSec;
     }
