@@ -102,7 +102,7 @@ public class PhotoSearchService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         body.put("temperature", 0.1);
-        body.put("max_tokens", 2000);
+        body.put("max_tokens", 4096);
         body.put("messages", List.of(Map.of(
                 "role", "user",
                 "content", List.of(
@@ -134,7 +134,11 @@ public class PhotoSearchService {
         if (!choices.isArray() || choices.isEmpty()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "视觉模型没有返回结果");
         }
-        String content = choices.get(0).path("message").path("content").asText("");
+        String content = choices.get(0).path("message").path("content").asText("").trim();
+        if (!StringUtils.hasText(content)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,
+                    "模型没有返回识别内容，请重拍或稍后重试");
+        }
         String json = stripFence(content);
         JsonNode node;
         try {
@@ -152,21 +156,78 @@ public class PhotoSearchService {
                     .model(model)
                     .build();
         }
+        String recognizedContent = node.path("content").asText("").trim();
+        boolean recognized = node.path("recognized").asBoolean(true)
+                && StringUtils.hasText(recognizedContent);
+        if (!recognized) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "没有识别出数学题，请换一张更清晰、只拍题目的图片");
+        }
+        List<String> warnings = strings(node.path("warnings"), 8);
+        if ("length".equals(choices.get(0).path("finish_reason").asText(""))) {
+            warnings.add("模型输出被截断，答案可能不完整");
+        }
+        String answer = node.path("answer").asText("").trim();
+        if (!StringUtils.hasText(answer)) {
+            answer = supplementAnswer(recognizedContent);
+            if (StringUtils.hasText(answer)) {
+                warnings.add("最终答案由文本模型补算，请核对");
+            } else {
+                warnings.add("模型没有返回最终答案，请重拍或查看解析步骤");
+            }
+        }
         return PhotoSearchResult.builder()
-                .recognized(node.path("recognized").asBoolean(true))
-                .content(node.path("content").asText(""))
+                .recognized(true)
+                .content(recognizedContent)
                 .options(strings(node.path("options"), MAX_OPTIONS))
-                .answer(node.path("answer").asText(""))
+                .answer(answer)
                 .steps(strings(node.path("steps"), MAX_STEPS))
                 .knowledgePoints(strings(node.path("knowledgePoints"), 10))
                 .confidence(node.path("confidence").asDouble(0))
-                .warnings(strings(node.path("warnings"), 8))
+                .warnings(warnings)
                 .model(model)
                 .build();
     }
 
-    private List<String> strings(JsonNode node, int max) {
-        List<String> result = new ArrayList<>();
+    /** 视觉模型只识别出题干、没给答案时，用文本模型补一次最终答案。 */
+    private String supplementAnswer(String content) {
+        String base = properties.getBaseUrl();
+        String key = properties.getApiKey();
+        String model = properties.getModel();
+        if (!StringUtils.hasText(base) || !StringUtils.hasText(key)
+                || !StringUtils.hasText(model)) {
+            return null;
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("temperature", 0);
+        body.put("max_tokens", 600);
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", "你是考研数学老师。只输出最终答案，不要解析过程。"),
+                Map.of("role", "user", "content", "求下面题目的最终答案：\n" + content)
+        ));
+        try {
+            WebClient client = webClientBuilder.baseUrl(base)
+                    .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + key)
+                    .build();
+            JsonNode response = client.post()
+                    .uri(URI.create(base.replaceAll("/+$", "") + "/chat/completions"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(JsonNode.class)
+                    .block(Duration.ofSeconds(properties.getTimeoutSeconds()));
+            if (response == null) return null;
+            String result = response.path("choices").path(0).path("message")
+                    .path("content").asText("").trim();
+            return StringUtils.hasText(result) ? result : null;
+        } catch (Exception e) {
+            log.warn("拍照搜题答案补算失败：{}", e.getMessage());
+            return null;
+        }
+    }
+
+    private List<String> strings(JsonNode node, int max) {        List<String> result = new ArrayList<>();
         if (node != null && node.isArray()) {
             for (JsonNode item : node) {
                 if (result.size() >= max) break;

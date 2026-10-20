@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
             <div class="flex items-center gap-2">
               <span class="grid h-8 w-8 place-items-center rounded-xl bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-100">✓</span>
               <div>
-                <div class="text-sm font-semibold text-slate-800">{{ result.recognized ? '识别完成' : '未识别到题目' }}</div>
+                <div class="text-sm font-semibold text-slate-800">{{ !result.recognized ? '未识别到题目' : (result.answer ? '识别完成' : '已识别题干，未生成答案') }}</div>
                 <div class="text-[11px] text-slate-400">模型 {{ result.model }} · 仅辅助，请核对题干</div>
               </div>
             </div>
@@ -267,6 +267,9 @@ onBeforeUnmount(() => {
               <div class="absolute -right-6 -top-8 text-8xl font-serif text-white/10">∑</div>
               <div class="text-[11px] font-medium uppercase tracking-[0.18em] text-indigo-100/80">Answer</div>
               <div class="mt-2 text-lg font-semibold leading-8" v-html="renderMath(result.answer)"></div>
+            </div>
+            <div v-else class="rounded-xl border border-amber-100 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+              这次模型只识别出了题干，没有给出最终答案。可以重拍一张更清晰的图，或先看下面的解析步骤。
             </div>
 
             <div v-if="result.steps?.length">
