@@ -24,6 +24,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+/**
+ * 认证用例层：登录、注册、刷新、登出、改密、邮箱与找回密码。
+ *
+ * 读这条链路先看三个出口：
+ * - login/register：BCrypt 校验 + JwtService 签发 access/refresh
+ * - refresh：校验 tokenVersion 后递增，旧 access/refresh 全部失效
+ * - logout/changePassword：递增 tokenVersion，服务端撤销所有旧 token
+ */
 @Service
 public class AuthService {
 

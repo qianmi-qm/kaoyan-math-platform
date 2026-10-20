@@ -20,8 +20,13 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 /**
- * 拍照搜题：图片不落盘，直接以 data URL 发给 OpenAI 兼容 vision 接口。
- * 识别结果只用于当次展示，不自动写题库/不自动判分。
+ * 拍照搜题：图片校验 → 扣配额 → vision → JSON 解析 → 答案补算。
+ *
+ * 关键约束：
+ * - 图片只在内存里转 data URL，不落盘
+ * - 配额在调模型前扣；失败退款
+ * - 视觉模型只识别题干没给答案时，用文本模型补一次
+ * - 历史保存不在这里：用户确认后由 PhotoHistoryService 落库
  */
 @Service
 public class PhotoSearchService {

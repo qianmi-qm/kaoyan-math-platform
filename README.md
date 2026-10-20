@@ -2,7 +2,7 @@
 
 Spring Boot 3 + MyBatis + MySQL + Vue 3 的考研数学学习平台。v3 在 v2（题库 / 练习 / 日报 / 艾宾浩斯复习 / Redis / AI 讲解）基础上加入 **JWT 认证、多用户隔离、管理员后台、题库编辑、拍照搜题/搜题历史/错题本、同类题练习、token 刷新/撤销、Redis 限流、AI 每日配额、修改密码、邮箱验证与找回密码**；69 个测试全绿，Docker Compose 四容器（MySQL / Redis / 后端 / 前端）实际启动验证通过。
 
-> 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)，从零阅读路线见 [`docs/LEARNING_GUIDE.md`](docs/LEARNING_GUIDE.md)。
+> 版本说明：`v1.1.0-interview` 是面试稳定版；`v2.0.3` 是单用户技术版；当前 `v3` 分支开始产品化认证。v1 面试包装见 [`docs/INTERVIEW.md`](docs/INTERVIEW.md)，v2 见 [`docs/V2.md`](docs/V2.md)，v3 认证设计见 [`docs/V3.md`](docs/V3.md)。从零阅读：[`LEARNING_GUIDE.md`](docs/LEARNING_GUIDE.md)、[`CODE_TOUR.md`](docs/CODE_TOUR.md)、[`ARCHITECTURE.md`](docs/ARCHITECTURE.md)、[`LEARNING_PLAN_4W.md`](docs/LEARNING_PLAN_4W.md)。
 
 配套设计文档：《v1 方案与分层学习路线图》（本地 `kaoyan-math-v1-plan`，未随仓库发布）
 

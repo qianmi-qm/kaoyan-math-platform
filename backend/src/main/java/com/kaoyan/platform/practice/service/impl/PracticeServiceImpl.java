@@ -31,6 +31,12 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 练习用例层：
+ * - startSession：按 KP/随机/错题/指定题选题，插入未提交记录
+ * - submit：服务端计时、AnswerMatcher 判分、错题入复习、删日报缓存
+ * - selfEvaluate：大题先提交占位答案，再人工自评
+ */
 @Service
 public class PracticeServiceImpl implements PracticeService {
 

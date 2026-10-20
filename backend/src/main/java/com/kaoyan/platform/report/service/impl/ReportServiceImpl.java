@@ -34,6 +34,15 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 日报用例层：今天实时生成，历史日期优先读 daily_report 快照。
+ *
+ * 统计口径：
+ * - totalCount：当天开始过的题
+ * - submittedCount：已提交
+ * - gradedCount：已判分（大题未自评不算）
+ * - correctRate：correct / graded，而不是 correct / started
+ */
 @Service
 public class ReportServiceImpl implements ReportService {
 
